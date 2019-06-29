@@ -1,0 +1,89 @@
+---
+title: "Tomarken"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tomarken}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+This document generates the example MICs from Tomarken & Waller (2003).
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(MICr)
+library(knitr)
+drawPlots <- FALSE
+if(drawPlots) {
+  drawPlots <- require(umx)  # Plot only if UMX is available
+}
+```
+For these, I moused the models together in Onyx (http://onyx.brandmaier.de/), 
+and exported the scripts across to here with minimal changes to make the style
+work.  Apologies to readers that the style is imperfect.
+
+#### Example 1A:
+```{r}
+tomarken1A <- mxModel("Tomarken1A", 
+  type="RAM", manifestVars = c("X", "Y", "Z"), latentVars = c("Ry", "Rz"),
+    mxPath(from="Ry", to="Y",  free=c(FALSE), value=1.0, arrows=1, label=c("Ry_TO_Y") ),
+    mxPath(from="Rz", to="Z",  free=c(FALSE), value=1.0, arrows=1, label=c("Rz_TO_Z") ),
+    mxPath(from="X",  to="Y",  free=c(TRUE),  value=0.8, arrows=1, label=c("_alpha") ),
+    mxPath(from="Y",  to="Z",  free=c(TRUE),  value=0.8, arrows=1, label=c("_beta") ),
+    mxPath(from="Ry", to="Ry", free=c(TRUE),  value=1.0, arrows=2, label=c("_V__Ry_") ),
+    mxPath(from="Rz", to="Rz", free=c(TRUE),  value=1.0, arrows=2, label=c("_V__Rz_") ),
+    mxPath(from="X",  to="X",  free=c(TRUE),  value=1.0, arrows=2, label=c("_V_X") )
+)
+if(drawPlots) {
+  umx_set_plot_format("DiagrammeR")
+  plot(tomarken1A, pathLabels="both")
+}
+kable(MIC(tomarken1A))
+```
+
+#### Example 1B
+```{r}
+tomarken1B <- mxModel("Tomarken1B", 
+  type="RAM", manifestVars = c("X","Y","Z"), latentVars = c("Rx", "Ry"),
+  mxPath(from="Y",  to=c("X"),  free=TRUE,  value=.8, arrows=1, label="__alpha_2"),
+  mxPath(from="Z",  to=c("Y"),  free=TRUE,  value=.8, arrows=1, label="__beta_2"),
+  mxPath(from="Rx", to=c("X"),  free=FALSE, value=1.0,  arrows=1, label="Rx_TO_X"),
+  mxPath(from="Ry", to=c("Y"),  free=FALSE, value=1.0,  arrows=1, label="Ry_TO_Y"),
+  mxPath(from="Z",  to=c("Z"),  free=TRUE,  value=1.0, arrows=2, label="_V_Z"),
+  mxPath(from="Rx", to=c("Rx"), free=TRUE,  value=1.0, arrows=2, label="_V__Rx_"),
+  mxPath(from="Ry", to=c("Ry"), free=TRUE,  value=1.0, arrows=2, label="_V__Ry_")
+)
+if(drawPlots) {
+  umx_set_plot_format("DiagrammeR")
+  plot(tomarken1B, pathLabels="both")
+}
+kable(MIC(tomarken1B))
+```
+
+#### Example 1C
+```{r}
+tomarken1C <- mxModel("Tomarken1C", 
+    type="RAM", manifestVars = c("X","Y","Z"), latentVars = c("Rz","Ry"),
+    mxPath(from="X",to=c("Z","Y"), free=c(TRUE,TRUE), value=c(.8,.8) , arrows=1,     label=c("beta_3","alpha_3") ),
+    mxPath(from="Rz", to="Z",   free=TRUE, value=1.0,  arrows=1, label="Rz_TO_Z" ),
+    mxPath(from="Ry", to="Y",   free=TRUE, value=1.0,  arrows=1, label="Ry_TO_Y" ),
+    mxPath(from="X",  to="X",   free=TRUE, value=1.0, arrows=2, label="V_X" ),
+    mxPath(from="Rz", to="Rz",  free=TRUE, value=1.0, arrows=2, label="V__Rz_" ),
+    mxPath(from="Ry", to="Ry",  free=TRUE, value=1.0, arrows=2, label="V__Ry_" )
+)
+if(drawPlots) {
+  umx_set_plot_format("DiagrammeR")
+  plot(tomarken1C, pathLabels="both")
+}
+kable(MIC(tomarken1C))
+```
+
+And the comparison table:
+```{r}
+kable(MICTable(tomarken1A, tomarken1B, tomarken1C))
+```
+
