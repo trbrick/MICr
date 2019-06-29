@@ -1,13 +1,32 @@
 Package: MICr
-Title: What the Package Does (One Line, Title Case)
+Title: Models of Implied Causation in R
 Version: 0.0.0.9000
-Authors@R: 
-    person(given = "First",
-           family = "Last",
+Authors@R: c( 
+    person(given = "Timothy R.",
+           family = "Brick",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: What license it uses
+           email = "tbrick@psu.edu",
+           comment = c(ORCID = "0000-0002-3339-9279")),
+    person(given = "Drew H.",
+           family = "Bailey",
+           role=c("aut"),
+           email = "")
+    )
+Description: Matrices of Implied Causation (MICs) are a tool for 
+    understanding a path model’s implications for the causal influence of one 
+    variable on another, and for comparing models on that basis. While causality
+    cannot be determined simply by fitting a path model, researchers often use 
+    these models as a representation of an underlying causal process model.  In
+    these cases, MICs and MIC tables are useful for comparing models for face 
+    validity, and for the design of optimal experiments to differentiate the
+    predictions they make.
+License: Apache-2
 Encoding: UTF-8
 LazyData: true
+Depends: OpenMx, tidyr, dplyr, rlang, purrr
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 2.1.0)
+VignetteBuilder: knitr
+RoxygenNote: 6.1.1
