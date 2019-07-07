@@ -1,0 +1,51 @@
+---
+title: "SimpleMediation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SimpleMediation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+suppressPackageStartupMessages(library(MICr))
+suppressPackageStartupMessages(library(OpenMx))
+suppressPackageStartupMessages(library(knitr))  # for kable.
+suppressPackageStartupMessages(library(DiagrammeR))
+```
+
+In this vignette, we lay out a very simplified mediation model as a means of understanding what the MIC does.
+```{r, XYZExample}
+XYZmodel <- mxModel("XYZ", manifestVars=c("X", "Y", "Z"), type="RAM",
+  mxPath(from="Z", to="Y", values=.6, labels="\\Beta"),
+  mxPath(from="X", to=c("Y", "Z"), values=c(.2, .8), labels=c("\\lambda", "\\alpha")),
+  mxMatrix("Iden",3,name="I"))
+```
+
+The model's MIC looks like this:
+```{r}
+kable(MIC(XYZmodel), caption="Simple Mediation MIC")
+```
+
+Note that Z->Y and X->Z remain identical, since there is only one path present to follow each link.  However, X->Y is two paths: one direct and one indirect.  The MIC path between them is the combination of the two.
+
+For ease of reporting, this can also be displayed as a MIC table.
+
+```{r}
+kable(MICTable(XYZmodel), caption="Simple Mediation MIC Table")
+```
+
+The table format has the easy ability to select using traditional data frame selection operators.  For example, if we only care about the causal influences on Z:
+```{r}
+theTable <- MICTable(XYZmodel)
+onZ <- theTable[theTable$to == "Z",]
+kable(onZ, caption="Simple Mediation MIC: Effects on Z", row.names=FALSE)
+```
+

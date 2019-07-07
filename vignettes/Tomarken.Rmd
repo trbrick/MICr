@@ -1,5 +1,5 @@
 ---
-title: "Tomarken"
+title: "Tomarken Models"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Tomarken}
@@ -15,16 +15,20 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(MICr)
+suppressPackageStartupMessages(library(MICr))
 library(knitr)
 drawPlots <- FALSE
-if(drawPlots) {
+if(drawPlots & interactive()) {
   drawPlots <- require(umx)  # Plot only if UMX is available
 }
 ```
 For these, I moused the models together in Onyx (http://onyx.brandmaier.de/), 
 and exported the scripts across to here with minimal changes to make the style
 work.  Apologies to readers that the style is imperfect.
+
+Note also that this description differs slightly from the results posted in Brick & Bailey (submitted).  This is because the models here resemble the Tomarken examples exactly, whereas Brick & Bailey collapse the residual factors Rx, Ry, and Rz into X, Y, and Z respectively.  
+
+The transformation is straightforward: instead of a latent factor with loading 1 and variance 1, we simply add a variance arrow directly on the manifest variable.  This results in identical model predictions each time.  The only resulting difference is that Ry (the only residual factor is included in all models) carries the same causal force as Y in the current vignette.
 
 #### Example 1A:
 ```{r}
@@ -42,7 +46,7 @@ if(drawPlots) {
   umx_set_plot_format("DiagrammeR")
   plot(tomarken1A, pathLabels="both")
 }
-kable(MIC(tomarken1A))
+kable(MIC(tomarken1A), caption="Tomarken Model 1A")
 ```
 
 #### Example 1B
@@ -61,7 +65,7 @@ if(drawPlots) {
   umx_set_plot_format("DiagrammeR")
   plot(tomarken1B, pathLabels="both")
 }
-kable(MIC(tomarken1B))
+kable(MIC(tomarken1B), caption="Tomarken Model 1B")
 ```
 
 #### Example 1C
@@ -79,11 +83,58 @@ if(drawPlots) {
   umx_set_plot_format("DiagrammeR")
   plot(tomarken1C, pathLabels="both")
 }
-kable(MIC(tomarken1C))
+kable(MIC(tomarken1C), caption="Tomarken Model 1C")
 ```
 
 And the comparison table:
 ```{r}
-kable(MICTable(tomarken1A, tomarken1B, tomarken1C))
+kable(MICTable(tomarken1A, tomarken1B, tomarken1C), caption="Tomarken Model MIC Table")
+```
+
+This table can be complicated and difficult to read, so it may be helpful to split it into separate chunks based on the types of difference in each.
+
+```{r}
+theTables <- MICTable(tomarken1A, tomarken1B, tomarken1C, splitByType = TRUE)
+```
+
+The result is a list of tables.  The most important in this case is the `exist` table, which carries all paths that differ by the existence of causal effect between at least two models.
+```{r}
+kable(theTables$exist, caption="Tomarken Model: MIC Existence Table")
+```
+
+We can cull out the ones we don't want via the `%in%` operator:
+```{r}
+existTable <- theTables$exist
+kable(existTable[existTable$from %in% c("X", "Y", "Z"),], caption="Tomarken Model: MIC Existence Table (Reduced)", row.names=FALSE)
+```
+
+In this case, this filters out the rows that are from the additional Residual term Ry, and makes the table look like the one reported by Brick and Bailey.
+
+Of particular note, recognize that manipulations to Y (or Ry, if you prefer) will result in distinctive patterns for each of the different models. Manipulating X results in an existence difference between 1B and the others, since X is an outcome only in 1B.  There is also a scale difference between 1A and 1C in the predictions about Z, although it is not tremendous.
+
+The next table is `sign`, which shows cases where a series of one-tailed tests might distinguish the models (here, empty).
+```{r}
+kable(theTables$sign, caption="Tomarken Model: MIC Sign Table")
+```
+
+Then `scale`, which carries those elements that differ only by scale across all three models (again, here empty).
+```{r}
+kable(theTables$scale, caption="Tomarken Model: MIC Scale Table")
+```
+
+The helper table `any` includes all elements of the previous three tables, ordered.  Here, it is identical to the `exist` table.
+```{r}
+kable(theTables$any, caption="Tomarken Model: MIC Any Differences Table")
+```
+
+
+Finally `other` contains those paths that are identical in every case.
+```{r}
+kable(theTables$other, caption="Tomarken Model: MIC Other Paths Table")
+```
+
+And finally, `all` contains causal predictions for all pairs of all variables that exist in all three models--this is the default MIC Table.
+```{r}
+kable(theTables$all, caption="Tomarken Model: MIC All Paths Table")
 ```
 
