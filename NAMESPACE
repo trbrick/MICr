@@ -3,5 +3,6 @@
 export(MIC)
 export(MICTable)
 import(dplyr)
-import(purrr)
-import(rlang)
+importFrom(purrr,pmap_lgl)
+importFrom(rlang,enexprs)
+importFrom(rlang,list2)

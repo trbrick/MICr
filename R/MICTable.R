@@ -76,8 +76,8 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
 ##' @details
 ##' Returns a comparison table comparing MICs from several models.
 ##'
-##' @import rlang
-##' @import purrr
+##' @importFrom rlang list2 enexprs
+##' @importFrom purrr pmap_lgl
 ##' @import dplyr
 ##' @export
  MICTable <- function(..., minAbs=.01, minDiff=NA, splitByType=FALSE) {
