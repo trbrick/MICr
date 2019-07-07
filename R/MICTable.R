@@ -119,6 +119,14 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
   # Widen--one column per model, one row per path
   wideMIC <- spread(tMICs, model, value)
 
+  if(length(modelNames) < 2) {
+    if(!splitByType) {
+      return(wideMIC)
+    } else {
+      return(list(all=wideMIC))
+    }
+  }
+
   # Filter out cases where one variable doesn't exist in a given model
   invalids <- wideMIC %>% dplyr::filter_all(any_vars(is.na(.)))
   others <- wideMIC %>% dplyr::filter_all(all_vars(!is.na(.)))
@@ -128,14 +136,14 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
   scaleDifference <- function(...) { any(dist(abs(c(...))) > minDiff)}
 
   # Differ by existence of an effect
-  differs <- pmap_lgl(others[,modelNames], existenceDifference)
+  differs <- pmap_lgl(others[,modelNames,drop=FALSE], existenceDifference)
   existence <- others %>% dplyr::filter(differs)
   #%>%                arrange(desc(abs(max(diff(.data[[,modelNames]])))))
   # Do not differ by existence
   others <- others %>% dplyr::filter(!differs)
 
   # Differ by sign of the effect:
-  differs <- pmap_lgl(others[,modelNames], signDifference)
+  differs <- pmap_lgl(others[,modelNames,drop=FALSE], signDifference)
   sign <- others %>% dplyr::filter(differs)
   # %>% arrange(desc(max(abs(diff(.data[,modelNames])))))
 
@@ -143,7 +151,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
   others  <- others %>% dplyr::filter(!differs)
 
   # Differ by scale of the effect:
-  differs <- pmap_lgl(others[,modelNames], scaleDifference)
+  differs <- pmap_lgl(others[,modelNames,drop=FALSE], scaleDifference)
   scale <- others %>% dplyr::filter(differs)
   #%>% arrange(desc(max(abs(diff(.data[[,modelNames]])))))
 
