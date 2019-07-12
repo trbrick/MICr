@@ -27,6 +27,7 @@ Depends: OpenMx, tidyr, dplyr, rlang, purrr
 Suggests: 
     knitr,
     rmarkdown,
+    DiagrammeR,
     testthat (>= 2.1.0)
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
