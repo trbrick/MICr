@@ -58,7 +58,7 @@ MIC <- function(model, latents=TRUE, ...) {
 ##'
 ##' @details
 ##' See Paper.
-computeCorrelation <- function(model, stdize=TRUE) {
+computeCorrelation <- function(model, latents=TRUE, stdize=TRUE) {
   if(!is(model, "MxRAMModel")) {
     stop("The MICr package currently only analyzes models in the RAM framework.",
          "If you would like MICs for other frameworks, please provide feedback ",
