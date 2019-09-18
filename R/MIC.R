@@ -21,6 +21,8 @@
 ##'
 ##' @seealso MICTable
 ##'
+##' @import OpenMx
+##'
 ##' @export
 MIC <- function(model, latents=TRUE, ...) {
   if(!is(model, "MxRAMModel")) {
@@ -55,6 +57,8 @@ MIC <- function(model, latents=TRUE, ...) {
 ##' @param stdize Return a correlation matrix instead of a covariance? (default TRUE)
 ##'
 ##' @return The covariance or correlation matrix implied by this model.
+##'
+##' @importFrom stats cov2cor
 ##'
 ##' @details
 ##' See Paper.

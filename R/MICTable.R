@@ -14,9 +14,13 @@
 ##'
 ##' @return The MIC table flattened form of this MIC
 ##'
+##' @importFrom methods is
+##' @importFrom tidyr pivot_longer
+##' @importFrom dplyr select
 ##' @details
 ##'  Creates a flat-table version of a single MIC.
-flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeModel=FALSE) {
+flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
+                       includeModel=FALSE) {
 
   # Check for pre-flattened MIC
   if(is.data.frame(mic) && "from" %in% names(mic)) {
@@ -36,7 +40,8 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
   }
 
   # Gather the matrix into a table
-  mdf <- mic %>% gather(from, value, -one_of("to", "model"))
+  mdf <- mic %>% tidyr::pivot_longer(-one_of("to", "model"), names_to="from",
+                                     values_to="value")
 
   # Remove unwanted entries:
   if(cullTiny) { # If requested, small entries
@@ -76,8 +81,10 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
 ##' @details
 ##' Returns a comparison table comparing MICs from several models.
 ##'
-##' @importFrom rlang list2 enexprs
+##' @importFrom rlang list2 enexprs .data
 ##' @importFrom purrr pmap_lgl
+##' @importFrom tidyr pivot_wider
+##' @importFrom stats dist
 ##' @import dplyr
 ##' @export
  MICTable <- function(..., minAbs=.01, minDiff=NA, splitByType=FALSE) {
@@ -91,7 +98,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
     if(is(models[[mNo]], "MxModel") &&
         !is(models[[mNo]], "MxModel")) {
       stop(paste0("MICr currently only supports RAM models, but model ",
-                  model$name, " is not a RAM model."))
+                  models[[mNo]]$name, " is not a RAM model."))
     }
 
     # TODO: Figure out what this was for.
@@ -117,7 +124,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
   }
 
   # Widen--one column per model, one row per path
-  wideMIC <- spread(tMICs, model, value)
+  wideMIC <- pivot_wider(tMICs, names_from="model", values_from="value")
 
   if(length(modelNames) < 2) {
     if(!splitByType) {
@@ -128,8 +135,8 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6, includeM
   }
 
   # Filter out cases where one variable doesn't exist in a given model
-  invalids <- wideMIC %>% dplyr::filter_all(any_vars(is.na(.)))
-  others <- wideMIC %>% dplyr::filter_all(all_vars(!is.na(.)))
+  invalids <- wideMIC %>% dplyr::filter_all(any_vars(is.na(.data)))
+  others <- wideMIC %>% dplyr::filter_all(all_vars(!is.na(.data)))
 
   existenceDifference <- function(...) { length(unique(abs(c(...)) > minAbs)) > 1 }
   signDifference <- function(...) { length(unique(sign(c(...)))) > 1}

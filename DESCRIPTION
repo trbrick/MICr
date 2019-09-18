@@ -23,8 +23,10 @@ Description: Matrices of Implied Causation (MICs) are a tool for
 License: Apache-2
 Encoding: UTF-8
 LazyData: true
-Depends: OpenMx, tidyr, dplyr, rlang, purrr
+Depends: OpenMx
+Imports: rlang, purrr, dplyr, tidyr, methods, stats
 Suggests: 
+    umx,
     knitr,
     rmarkdown,
     DiagrammeR,

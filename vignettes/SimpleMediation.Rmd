@@ -15,9 +15,9 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-suppressPackageStartupMessages(library(MICr))
-suppressPackageStartupMessages(library(OpenMx))
-suppressPackageStartupMessages(library(knitr))  # for kable.
+library(MICr)
+library(OpenMx)
+library(knitr)  # for kable.
 ```
 
 In this vignette, we lay out a very simplified mediation model as a means of understanding what the MIC does.
