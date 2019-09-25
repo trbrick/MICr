@@ -1,0 +1,54 @@
+---
+title: "Mediation-lavaan"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Mediation-lavaan}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(MICr)
+library(lavaan)
+library(knitr)  # for kable.
+```
+
+In this vignette, we lay out a very simplified mediation model as a means of understanding what the MIC does.
+```{r, XYZExample}
+XYZmodel <- lavaan("Y ~ .2*X +.6*Z
+                    Z ~ .8*X")
+```
+
+The model's MIC looks like this:
+```{r}
+kable(MIC(XYZmodel), caption="Simple Mediation MIC")
+```
+
+Note that Z->Y and X->Z remain identical, since there is only one path present to follow each link.  However, X->Y is two paths: one direct and one indirect.  The MIC path between them is the combination of the two.  Also, because `lavaan` orders the manifest variables as Y, X, Z, the MIC does as well.
+
+For ease of reporting, this can also be displayed as a MIC table.
+
+```{r}
+MICTable(XYZmodel, caption="Simple Mediation MIC Table")
+```
+
+The table format has the easy ability to select using traditional data frame selection operators.  For example, if we only care about the causal influences on Z or on Y:
+```{r}
+theTable <- MICTable(XYZmodel)
+onZ <- theTable[theTable$to == "Z",]
+onY <- theTable[theTable$to == "Y",]
+
+kable(onZ, caption="Simple Mediation MIC: Effects on Z", row.names=FALSE)
+kable(onY, caption="Simple Mediation MIC: Effects on Y", row.names=FALSE)
+```
+
+This allows us to identify the differences in the causal structure in a more direct and sensible way.

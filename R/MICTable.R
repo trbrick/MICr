@@ -95,18 +95,11 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
   modelNames <- rlang::enexprs(...)
   models <- list2(...)
   for(mNo in seq_along(models)) {
-    if(is(models[[mNo]], "MxModel") &&
-        !is(models[[mNo]], "MxModel")) {
-      stop(paste0("MICr currently only supports RAM models, but model ",
-                  models[[mNo]]$name, " is not a RAM model."))
-    }
-
-    # TODO: Figure out what this was for.
-    if(is(models[[mNo]], "MxRAMModel")) {
-      if(models[[mNo]]$name %in% names(models) ||
-         startsWith(models[[mNo]]$name, "untitled")) {
-          names(models)[mNo] <- as.character(modelNames[[mNo]])
-      } else {
+    if(!is.null(attr(models[[mNo]], "model"))) names(models)[mNo] <- attr(models[[mNo]], "model")
+    #  Replaces names with MxModel names if they exist.
+    else if(is(models[[mNo]], "MxRAMModel")) {
+      if(!(models[[mNo]]$name %in% names(models) ||
+         startsWith(models[[mNo]]$name, "untitled"))) {
         names(models)[mNo] <- models[[mNo]]$name
       }
     }
@@ -118,7 +111,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
   for(mNo in seq_along(models)) {
     aModel <- models[[mNo]]
     aName <- names(models)[mNo]
-    if(is(aModel, "MxRAMModel")) {aModel <- MIC(aModel)}
+    if(is.null(attr(aModel, "MIC"))) {aModel <- MIC(aModel, standardized = standardize)}
     flatModel <- flattenMIC(aModel, includeModel=TRUE, model=aName, cullTiny=FALSE)
     tMICs <- rbind(tMICs, flatModel)
   }
