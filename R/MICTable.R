@@ -71,27 +71,67 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
 ##' @param minAbs the smallest absolute size of causal effect that is worth noticing (default .01)
 ##' @param minDiff the smallest difference in effect that is worth considering a difference of scale (default minAbs)
 ##' @param splitByType If TRUE, return a list of tables split by the type of difference (e.g. existence of causal pathway, sign of causal path, scale of path, none of the above).  If FALSE, return a single table. Default TRUE.
+##' @param standardize If TRUE, return standardized values
+##' @param print A list of the tables to be printed.  Set to FALSE to stop pretty-printing. By default, prints effects that differ by existence, sign, or scale. See details.
+##' @param from A list of sources: paths not from a listed source are not printed.  Default NA (print all).
+##' @param to A list of the outcomes; paths not ending at a listed outcome are not printed. Default NA (print all).
 ##'
-##' @return Three data frames:
+##' @return If splitByType is FALSE, a single data frame containing all implied causal effects, as compared across all models.
+##'
+##' If splitByType is TRUE (the default if more than one model is povided), five data frames:
 ##'  $exist contains causal effects that exist (|>minAbs|) in at least one model but do not exist in at least one other
 ##'  $sign contains causal effects that exist in all models, but with different signs in at least two models
 ##'  $scale contains causal effects with the same sign in all models, but which differ in scales (diff > minDiff) between at least two models
 ##'  $other causal effects that are identical between models
+##'  $all contains the combined table, as would be returned if splitByType were FALSE.
 ##'
 ##' @details
 ##' Returns a comparison table comparing MICs from several models.
+##'
+##' The print= argument can be used to trigger pretty-printing using kable from the knitr package.
+##'   The value of the print= vector contains the list of tables to pretty-print. Each table printed will be reduced to the paths of interest, as defined by the from= and to= arguments.
+##'   Possible values are:
+##'       existence: Model-implied causal effects with absolute value > minAbs in at least one model that either do not exist or have absolute value < minAbs in at least one other
+##'       sign: Model-implied causal effects that exist in all models, but are positive in at least one model and negative in at least one other
+##'       scale: Model-implied causal effects that exist with the same sign in all models, but differ in scale by at least minDiff in two models
+##'       other: Model-implied causal effects that do not differ by at least minDiff in any model
+##'       all: All model-implied causal effects
+##'       any: Model implied causal effects that differ that differ by sign, scale, or existence between at least two models
+##'    Pretty-printing may be disabled by setting it to FALSE or an empty vector.
+##'    If only one model is provided, "all" will print the entire model table; any other legal value will print all effects with an absolute value larger than minAbs.
+##' This functionality may be replicated using the kable() function if more precision is desired.
+##'
+##' @examples
+##' XYZmodel <- lavaan("Y ~ .2*X +.6*Z
+##'                     Z ~ .8*X")
+##' # Print all paths
+##' MICTable(XYZmodel, print="all")
+##'
+##' # Print only sign, scale, and exist as separate tables:
+##' MICTable(XYZmodel, print="all")
+##'
+##' # Print only the nonzero influences of X:
+##' MICTable(XYZmodel, from="X")
 ##'
 ##' @importFrom rlang list2 enexprs .data
 ##' @importFrom purrr pmap_lgl
 ##' @importFrom tidyr pivot_wider
 ##' @importFrom stats dist
+##' @importFrom knitr kable
 ##' @import dplyr
 ##' @export
- MICTable <- function(..., minAbs=.01, minDiff=NA, splitByType=FALSE) {
+ MICTable <- function(..., minAbs=.01, minDiff=NA, splitByType=TRUE,
+                           standardize=FALSE, caption=NULL,
+                           print=c("exist", "sign", "scale"),
+                           from=NA, to=NA) {
 
   # Handle input
   if(is.na(minDiff)) {minDiff <- minAbs}
 
+  # Processing print argument
+  matches <- pmatch(tolower(print), c("existence", "sign", "scale", "existence", "all"))
+
+  # Build up model names for table
   modelNames <- rlang::enexprs(...)
   models <- list2(...)
   for(mNo in seq_along(models)) {
@@ -102,9 +142,14 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
          startsWith(models[[mNo]]$name, "untitled"))) {
         names(models)[mNo] <- models[[mNo]]$name
       }
-    }
+    } else { names(models)[mNo] <- as.character(modelNames[[mNo]]) }
   }
   modelNames <- names(models)
+
+  # Default caption
+  if(is.null(caption)) {
+    caption <- paste("Implied Causation Table:", paste(modelNames, collapse=", "))
+  }
 
   # Assemble all MICs
   tMICs <- NULL
@@ -119,12 +164,31 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
   # Widen--one column per model, one row per path
   wideMIC <- pivot_wider(tMICs, names_from="model", values_from="value")
 
-  if(length(modelNames) < 2) {
-    if(!splitByType) {
-      return(wideMIC)
-    } else {
-      return(list(all=wideMIC))
+  # Handle default from and to now that we know what our options are
+  if(OpenMx:::single.na(from)) from <- unique(wideMIC$from)
+  if(OpenMx:::single.na(to)) to <- unique(wideMIC$to)
+
+  if(length(setdiff(c(from, to), unique(c(wideMIC$from, wideMIC$to)))) > 0) {
+    warning(paste("Implied cause or effect of elements",
+                  paste(setdiff(c(from, to), unique(c(wideMIC$from, wideMIC$to))), collapse=", "),
+                  "was requested, but they do not appear in the MIC.")
+            )
+  }
+
+  if(length(modelNames) <= 2) {
+    # If "all" is requested for pretty-print, print all
+    if(5 %in% matches) {
+      wideMIC <- wideMIC[wideMIC$from %in% from & wideMIC$to %in% to,]
+      print(kable(wideMIC, caption=caption))
+      return(invisible(wideMIC))
+    } else if(any(!is.na(matches))) {
+    # If anything else is requested, pretty print all non-zeros
+      wideMIC <- wideMIC[wideMIC$from %in% from & wideMIC$to %in% to & abs(wideMIC[,3] > minAbs),]
+      print(kable(wideMIC, caption=caption))
+      return(invisible(wideMIC))
     }
+    # If it's set to FALSE, print nothing, and return normally.
+    return(wideMIC[wideMIC$from %in% from & wideMIC$to %in% to,])
   }
 
   # Filter out cases where one variable doesn't exist in a given model
@@ -164,8 +228,18 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
   any <- cbind(rbind(existence, sign, scale), type=c(rep("exist", nrow(existence)), rep("sign", nrow(sign)), rep("scale", nrow(scale))))
   all <- rbind(any, cbind(others, type=rep("None", nrow(others))))
 
-  if(!splitByType) return(all)
-  return(list(exist=existence, sign=sign, scale=scale, other=others, all=all, any=any))
+  output <- all
+  if(splitByType)
+    output <- list(exist=existence, sign=sign, scale=scale, other=others, all=all, any=any)
+  if(1 %in% matches) print(kable(existence[existence$from %in% from & existence$to %in% to,], caption=paste(caption, "Existence differences", sep="\n")))
+  if(2 %in% matches) print(kable(sign     [sign     $from %in% from & sign     $to %in% to,], caption=paste(caption, "Sign differences", sep="\n")))
+  if(3 %in% matches) print(kable(scale    [scale    $from %in% from & scale    $to %in% to,], caption=paste(caption, "Scale differences", sep="\n")))
+  if(4 %in% matches) print(kable(other    [other    $from %in% from & other    $to %in% to,], caption=paste(caption, "Existence differences", sep="\n")))
+  if(5 %in% matches) print(kable(all      [all      $from %in% from & all      $to %in% to,], caption=paste(caption, "All differences", sep="\n")))
+
+
+  if(any(!is.na(matches))) return(invisible(output))
+  else return(output)
 
 }
 

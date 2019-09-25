@@ -1,0 +1,130 @@
+---
+title: "InterventionComparison"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{InterventionComparison}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(MICr)
+library(umx)
+library(knitr)  # for kable.
+```
+
+In this vignette, we provide an introduction to using MICs to select among a set of interventions.  We assume the mediation model described in Brick & Bailey (submitted), in which Z partially mediates the effect of X on Y.
+
+We can construct a multiple mediator data set with a few quick lines of R code:
+```{r}
+set.seed(1234)
+# Predictors
+Predictor1 <- rnorm(100)
+Predictor2 <- rnorm(100)
+# Mediator
+Mediator  <- .4*Predictor1 + .6*Predictor2 + rnorm(100)
+#Outcome
+Outcome  <-0*Predictor1 + 0.4*Predictor2 + .7*Mediator + rnorm(100) 
+# Combined Data
+theData <- data.frame(Predictor1, Predictor2, Mediator, Outcome)
+
+```
+
+
+
+We'll start out by just building the mediation model. We'll use umx here for simplicity and plotting.
+```{r}
+model <- umxRAM("MediationModel", data=theData,
+                # Predictor Effects
+                umxPath(fromEach=c("Predictor1", "Predictor2"), to=c("Mediator", "Outcome")),
+                
+                # (Nonexistant) Intervention Effects
+                umxPath(from="ModifyP1", to="Predictor1", fixedAt=1.0),
+                umxPath(from="ModifyP2", to="Predictor2", fixedAt=.8),
+                umxPath(from="ModifyBoth", to=c("Predictor1", "Predictor2"), fixedAt=c(.6, .4)),
+
+                # Mediator Effect
+                umxPath(from="Mediator", to="Outcome"),
+                # Variances, means, and intercepts
+                umxPath(v.m. = c("Predictor1", "Predictor2", "Mediator", "Outcome"))
+)
+plot(model)
+```
+
+
+In this case, we will examine the effects of three different potential interventions on the outcome: one intervention (`ModifyP1`) that improves `Predictor1` by two points, another (`ModifyP2`) that increases `Predictor2` by one point, and a joint intervention `ModifyBoth` that increases both by a half point.
+```{r}
+ixnModel <- umxRAM("MediationModel", data=theData,
+                # Predictor Effects
+                umxPath(fromEach=c("Predictor1", "Predictor2"), to=c("Mediator", "Outcome")),
+                
+                # (Latent) Intervention Effects
+                umxPath(from="ModifyP1", to="Predictor1", fixedAt=2.0),
+                umxPath(from="ModifyP2", to="Predictor2", fixedAt=1.0),
+                umxPath(from="ModifyBoth", to=c("Predictor1", "Predictor2"), fixedAt=c(.5, .5)),
+
+                # Mediator Effect
+                umxPath(from="Mediator", to="Outcome"),
+                # Variances, means, and intercepts
+                umxPath(v.m. = c("Predictor1", "Predictor2", "Mediator", "Outcome"))
+)
+plot(ixnModel)
+```
+
+
+The model's MIC looks like this:
+```{r}
+kable(MIC(ixnModel), caption="Simple Mediation MIC")
+```
+
+The MIC is somewhat overwhelming, and the MICTable is similar.  Instead, we filter down to only the effects of the interventions on the specific outcome, Z.
+
+```{r}
+MICTable(ixnModel, caption="Implied Intervention Effects On Output", from=c("ModifyP1", "ModifyP2", "ModifyBoth"), to="Outcome")
+```
+
+ModifyP2 has the strongest predicted influence on the outcome, partially because the direct effects of P2 are so strong.  In case the mediator is also of interest, we can check the influence on that as well.
+```{r}
+MICTable(ixnModel, caption="Implied Intervention Effects On Output", from=c("ModifyP1", "ModifyP2", "ModifyBoth"), to="Mediator")
+```
+
+If we're interested in modifying both the mediator and the outcome, ModifyP1 may be a better choice. If we are interested in modifying only the outcome, ModifyP2 is better.
+
+In cases with many possible outcomes, it may be helpful to generate a pareto plot that balances the cost against the influence of the outcome.  A Pareto plot provides a tradeoff surface showing the maximum influence of outcome at a given level of cost.  We can do this by assigning costs to each of the interactions in the MIC Table for the outcome.
+
+The cost function here is fairly simple:
+```{r}
+costFrame <- data.frame(name=c("ModifyP1", "ModifyP2", "ModifyBoth"), cost=c(1, 2, 1.5))
+costFrame
+```
+
+And then we can compute the pareto front and plot it directly from the MIC package.
+```{r}
+paretoFront(mic=ixnModel, outcome="Outcome", costs=costFrame)
+```
+
+To find the optimal effect at a given level of cost, trace upward to the line at the selected cost level, and then follow the line left to the first observed value.  That represents the intervention with the largest effect on the outcome that can be achieved for that cost.  If several have a common effect size, the optimal is the one with the lowest cost.
+
+For better comparisons, we can add a `scale` column, for cases where the intervention may have a quantitative rather than discrete effect, e.g. where more intervention (e.g. more clinical sessions) is expected to have a linear causal effect on the outcome.
+```{r}
+costFrame <- data.frame(name=c("ModifyP1", "ModifyP2", "ModifyBoth", "ModifyP1", "ModifyP2", "ModifyBoth"), cost=c(1, 2, 1.5, 2, 4, 3), scale=c(1,1,1,2,2,2))
+costFrame
+```
+
+Here, the pareto front may be more informative:
+```{r}
+paretoFront(mic=ixnModel, outcome="Outcome", costs=costFrame)
+```
+
+Here, it is clear that the `ModifyBoth` intervention is sub-optimal.  Indeed, `ModifyP1` is so efficient that it is better to apply it with double effect than to apply `ModifyP2` at scale 1. The cost for these two interventions is the same, but the effect is stronger for `ModifyP1`.
+
+Note that the `scale` here is a multiplier for the effect, not for the intervention.  That is, it may take 4 training sessions to have twice the effect of a single session.  These nonlinear effects should be reflected in the cost--they are not included in the model, and thus are not accounted for in the MIC.

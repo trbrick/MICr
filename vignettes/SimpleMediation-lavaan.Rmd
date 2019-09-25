@@ -41,14 +41,10 @@ For ease of reporting, this can also be displayed as a MIC table.
 MICTable(XYZmodel, caption="Simple Mediation MIC Table")
 ```
 
-The table format has the easy ability to select using traditional data frame selection operators.  For example, if we only care about the causal influences on Z or on Y:
+The table format has the easy ability to select using traditional data frame selection operators, but the `MICTable` function also has helpers.  For example, if we only care about the causal influences on Z or on Y:
 ```{r}
-theTable <- MICTable(XYZmodel)
-onZ <- theTable[theTable$to == "Z",]
-onY <- theTable[theTable$to == "Y",]
-
-kable(onZ, caption="Simple Mediation MIC: Effects on Z", row.names=FALSE)
-kable(onY, caption="Simple Mediation MIC: Effects on Y", row.names=FALSE)
+MICTable(XYZmodel, caption="Simple Mediation MIC Table: Effects on Y", to="Y")
+MICTable(XYZmodel, caption="Simple Mediation MIC Table: Effects on Z", to="Z")
 ```
 
 This allows us to identify the differences in the causal structure in a more direct and sensible way.

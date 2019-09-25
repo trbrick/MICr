@@ -20,14 +20,11 @@ Description: Matrices of Implied Causation (MICs) are a tool for
     these cases, MICs and MIC tables are useful for comparing models for face 
     validity, and for the design of optimal experiments to differentiate the
     predictions they make.
-License: Apache-2
+License: GPL-2
 Encoding: UTF-8
 LazyData: true
-Depends: OpenMx
-Imports: rlang, purrr, dplyr, tidyr, methods, stats
+Imports: OpenMx, rlang, purrr, dplyr, tidyr, methods, stats, lavaan, umx (>= 3.0.0), ggplot2, knitr
 Suggests: 
-    umx,
-    knitr,
     rmarkdown,
     DiagrammeR,
     testthat (>= 2.1.0)

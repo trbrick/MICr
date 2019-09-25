@@ -34,15 +34,16 @@ MIC <- function(model, latents=TRUE, standardized=FALSE, exogenous=TRUE, ...) {
     model <- as.MxRAMModel(model, standardized=standardized, exogenous=exogenous)
   
   A <- mxEval(A, model, ...)
-  I <- diag(1, nrow(A))
-  solution <- solve(I-A)
-  if(!latents) {
-    Fmat <-mxEval(F, model, ...)
-    solution <- Fmat %&% solution
+    I <- diag(1, nrow(A))
+    solution <- solve(I-A)
+    if(!latents) {
+	      Fmat <-mxEval(F, model, ...)
+	    solution <- Fmat %&% solution
   }
-  outVal <- data.frame(solution)
-  attr(outVal, "model") <- model$name
-  return(outVal)
+    outVal <- data.frame(solution)
+    attr(outVal, "model") <- model$name
+    attr(outVal, "MIC") <- TRUE
+    return(outVal)
 }
 
 
@@ -66,18 +67,18 @@ MIC <- function(model, latents=TRUE, standardized=FALSE, exogenous=TRUE, ...) {
 ##' @details
 ##' See Paper.
 computeCorrelation <- function(model, latents=TRUE, stdize=TRUE) {
-  if(!is(model, "MxRAMModel")) {
-    stop("The MICr package currently only analyzes models in the RAM framework.",
-         "If you would like MICs for other frameworks, please provide feedback ",
-         "on the OpenMx forums at https://openmx.ssri.psu.edu/")
+	  if(!is(model, "MxRAMModel")) {
+	      stop("The MICr package currently only analyzes models in the RAM framework.",
+	         "If you would like MICs for other frameworks, please provide feedback ",
+		          "on the OpenMx forums at https://openmx.ssri.psu.edu/")
+	   }
+    A <- mxEval(A, model)
+    S <- mxEval(S, model)
+    I <- diag(1, nrow(A))
+    outval <- solve(I-A) %&% S
+    if(!latents) {
+	      outval <- mxEval(F, model) %&% outval
   }
-  A <- mxEval(A, model)
-  S <- mxEval(S, model)
-  I <- diag(1, nrow(A))
-  outval <- solve(I-A) %&% S
-  if(!latents) {
-    outval <- mxEval(F, model) %&% outval
-  }
-  if(stdize) { outval <- cov2cor(outval)}
-  return(outval)
+    if(stdize) { outval <- cov2cor(outval)}
+	    return(outval)
 }

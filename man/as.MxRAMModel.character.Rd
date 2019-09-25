@@ -14,7 +14,7 @@ as.MxRAMModel.character(model, exogenous = TRUE, standardized = FALSE,
 
 \item{standardized}{Compute causal influences for the standardized model? (default FALSE)}
 
-\item{...}{other arguments to umxRAM2()}
+\item{...}{other arguments to umxLav2RAM()}
 }
 \value{
 An MxRAMModel containing the same path structure as the provided lavaan model
@@ -24,5 +24,5 @@ Extracts the paths from a lavaan syntax string and returns them as an MxRAMModel
 }
 \details{
 This function is experimental, and may have bugs.
-Under the hood, this function uses the umx function umxRAM2().  See the help file for that function for additional help.
+Under the hood, this function uses the umx function umxLav2RAM().  See the help file for that function for additional help.
 }

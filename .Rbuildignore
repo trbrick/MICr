@@ -1,2 +1,4 @@
 ^MICr\.Rproj$
 ^\.Rproj\.user$
+^\.git$
+.*\.gv$

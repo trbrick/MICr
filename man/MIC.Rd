@@ -4,12 +4,17 @@
 \alias{MIC}
 \title{MIC - Compute a matrix of implied causality}
 \usage{
-MIC(model, latents = TRUE, ...)
+MIC(model, latents = TRUE, standardized = FALSE, exogenous = TRUE,
+  ...)
 }
 \arguments{
-\item{model}{An Mx model in the RAM formulation}
+\item{model}{An SEM model (see details for compatibility)}
 
 \item{latents}{Compute causal influences of/on latent variables? (default TRUE)}
+
+\item{standardized}{Compute causal influences using the standardized model parameters? (default FALSE)}
+
+\item{exogenous}{Compute causal influences of exogenous variables? (default TRUE)}
 
 \item{...}{Other parameters passed to mxEval (e.g. defvar.row=)}
 }
@@ -26,6 +31,8 @@ result as an asymmetric matrix.  The value of a single path is the product
 of all single-headed arrows taken as part of that path, and the total causal
 influence is the sum of all paths that connect one variable to another by
 following only single-headed arrows, and only in the direction of the arrow.
+
+Currently accepts MxRAMModel objects, and converts basic lavaan and blavaan objects
 }
 \seealso{
 MICTable

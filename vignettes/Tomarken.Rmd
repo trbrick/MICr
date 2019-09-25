@@ -15,7 +15,8 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-suppressPackageStartupMessages(library(MICr))
+library(OpenMx)
+library(MICr)
 library(knitr)
 drawPlots <- FALSE
 if(drawPlots & interactive()) {

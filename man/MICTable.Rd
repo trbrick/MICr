@@ -4,7 +4,9 @@
 \alias{MICTable}
 \title{MICTable}
 \usage{
-MICTable(..., minAbs = 0.01, minDiff = NA, splitByType = FALSE)
+MICTable(..., minAbs = 0.01, minDiff = NA, splitByType = TRUE,
+  standardize = FALSE, caption = NULL, print = c("exist", "sign",
+  "scale"), from = NA, to = NA)
 }
 \arguments{
 \item{...}{MxModels from which to extract MICs}
@@ -14,17 +16,54 @@ MICTable(..., minAbs = 0.01, minDiff = NA, splitByType = FALSE)
 \item{minDiff}{the smallest difference in effect that is worth considering a difference of scale (default minAbs)}
 
 \item{splitByType}{If TRUE, return a list of tables split by the type of difference (e.g. existence of causal pathway, sign of causal path, scale of path, none of the above).  If FALSE, return a single table. Default TRUE.}
+
+\item{standardize}{If TRUE, return standardized values}
+
+\item{print}{A list of the tables to be printed.  Set to FALSE to stop pretty-printing. By default, prints effects that differ by existence, sign, or scale. See details.}
+
+\item{from}{A list of sources: paths not from a listed source are not printed.  Default NA (print all).}
+
+\item{to}{A list of the outcomes; paths not ending at a listed outcome are not printed. Default NA (print all).}
 }
 \value{
-Three data frames:
+If splitByType is FALSE, a single data frame containing all implied causal effects, as compared across all models.
+
+If splitByType is TRUE (the default if more than one model is povided), five data frames:
  $exist contains causal effects that exist (|>minAbs|) in at least one model but do not exist in at least one other
  $sign contains causal effects that exist in all models, but with different signs in at least two models
  $scale contains causal effects with the same sign in all models, but which differ in scales (diff > minDiff) between at least two models
  $other causal effects that are identical between models
+ $all contains the combined table, as would be returned if splitByType were FALSE.
 }
 \description{
 Takes a set of models and compares them all, following the rules in Brick and Bailey (2019).
 }
 \details{
 Returns a comparison table comparing MICs from several models.
+
+The print= argument can be used to trigger pretty-printing using kable from the knitr package.
+  The value of the print= vector contains the list of tables to pretty-print. Each table printed will be reduced to the paths of interest, as defined by the from= and to= arguments.
+  Possible values are:
+      existence: Model-implied causal effects with absolute value > minAbs in at least one model that either do not exist or have absolute value < minAbs in at least one other
+      sign: Model-implied causal effects that exist in all models, but are positive in at least one model and negative in at least one other
+      scale: Model-implied causal effects that exist with the same sign in all models, but differ in scale by at least minDiff in two models
+      other: Model-implied causal effects that do not differ by at least minDiff in any model
+      all: All model-implied causal effects
+      any: Model implied causal effects that differ that differ by sign, scale, or existence between at least two models
+   Pretty-printing may be disabled by setting it to FALSE or an empty vector.
+   If only one model is provided, "all" will print the entire model table; any other legal value will print all effects with an absolute value larger than minAbs.
+This functionality may be replicated using the kable() function if more precision is desired.
+}
+\examples{
+XYZmodel <- lavaan("Y ~ .2*X +.6*Z
+                    Z ~ .8*X")
+# Print all paths
+MICTable(XYZmodel, print="all")
+
+# Print only sign, scale, and exist as separate tables:
+MICTable(XYZmodel, print="all")
+
+# Print only the nonzero influences of X:
+MICTable(XYZmodel, from="X")
+
 }

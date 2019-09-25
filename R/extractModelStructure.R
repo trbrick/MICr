@@ -107,7 +107,7 @@ as.MxRAMModel <- function(model, exogenous=TRUE, standardized=FALSE, ...) {
 ##' This function is experimental, and may have bugs.
 ##' At present, it does not allow for constraints,
 ##'
-##' @importFrom lavaan parTable lavaanNames
+##' @importFrom lavaan parTable lavaanNames lavaan
 ##' @importClassesFrom lavaan lavaan
 ##' @import OpenMx
 ##'
@@ -219,19 +219,19 @@ setMethod("as.MxRAMModel", signature("MxModel"   ), as.MxRAMModel.MxModel)
 ##' @param model a lavaan model string
 ##' @param standardized Compute causal influences for the standardized model? (default FALSE)
 ##' @param exogenous Compute causal influences of exogenous variables? (default TRUE)
-##' @param ... other arguments to umxRAM2()
+##' @param ... other arguments to umxLav2RAM()
 ##'
 ##' @return An MxRAMModel containing the same path structure as the provided lavaan model
 ##'
 ##' @details
 ##' This function is experimental, and may have bugs.
-##' Under the hood, this function uses the umx function umxRAM2().  See the help file for that function for additional help.
+##' Under the hood, this function uses the umx function umxLav2RAM().  See the help file for that function for additional help.
 ##'
-##' @importFrom umx umxRAM2
+##' @importFrom umx umxLav2RAM
 ##'
 as.MxRAMModel.character <- function(model, exogenous=TRUE, standardized=FALSE, ...) {
 
-  tryCatch(umxRAM2(model, ...), error=function(x) {stop("The only character strings that can be interpreted as models",
+  tryCatch(umxLav2RAM(model, ...), error=function(x) {stop("The only character strings that can be interpreted as models",
                                                         "by this function are model specs using lavaan syntax.")})
 
   if(standardized) model <- standardizeMxRAMModel(model)
