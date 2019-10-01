@@ -19,6 +19,7 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(MICr)
 library(umx)
+library(semPlot)
 library(knitr)  # for kable.
 ```
 
@@ -57,12 +58,12 @@ model <- umxRAM("MediationModel", data=theData,
                 # Variances, means, and intercepts
                 umxPath(v.m. = c("Predictor1", "Predictor2", "Mediator", "Outcome"))
 )
-plot(model)
+semPaths(model)
 ```
 
 
 In this case, we will examine the effects of three different potential interventions on the outcome: one intervention (`ModifyP1`) that improves `Predictor1` by two points, another (`ModifyP2`) that increases `Predictor2` by one point, and a joint intervention `ModifyBoth` that increases both by a half point.
-```{r}
+```{r, result='asis'}
 ixnModel <- umxRAM("MediationModel", data=theData,
                 # Predictor Effects
                 umxPath(fromEach=c("Predictor1", "Predictor2"), to=c("Mediator", "Outcome")),
@@ -77,18 +78,18 @@ ixnModel <- umxRAM("MediationModel", data=theData,
                 # Variances, means, and intercepts
                 umxPath(v.m. = c("Predictor1", "Predictor2", "Mediator", "Outcome"))
 )
-plot(ixnModel)
+semPaths(ixnModel)
 ```
 
 
 The model's MIC looks like this:
-```{r}
-kable(MIC(ixnModel), caption="Simple Mediation MIC")
+```{r, result='asis'}
+kable(MIC(ixnModel), caption="Simple Intervention MIC")
 ```
 
 The MIC is somewhat overwhelming, and the MICTable is similar.  Instead, we filter down to only the effects of the interventions on the specific outcome, Z.
 
-```{r}
+```{r, result='asis'}
 MICTable(ixnModel, caption="Implied Intervention Effects On Output", from=c("ModifyP1", "ModifyP2", "ModifyBoth"), to="Outcome")
 ```
 
