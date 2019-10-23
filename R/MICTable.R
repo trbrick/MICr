@@ -75,6 +75,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
 ##' @param print A list of the tables to be printed.  Set to FALSE to stop pretty-printing. By default, prints effects that differ by existence, sign, or scale. See details.
 ##' @param from A list of sources: paths not from a listed source are not printed.  Default NA (print all).
 ##' @param to A list of the outcomes; paths not ending at a listed outcome are not printed. Default NA (print all).
+##' @param se Whether or not to return standard errors (default TRUE).  Model must be a run MxModel, but consult umxLav2RAM to create and run an MxModel using lavaan syntax
 ##'
 ##' @return If splitByType is FALSE, a single data frame containing all implied causal effects, as compared across all models.
 ##'
@@ -123,16 +124,16 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
  MICTable <- function(..., minAbs=.01, minDiff=NA, splitByType=TRUE,
                            standardize=FALSE, caption=NULL,
                            print=c("exist", "sign", "scale"),
-                           from=NA, to=NA) {
+                           from=NA, to=NA, se=NA) {
 
   # Handle input
   if(is.na(minDiff)) {minDiff <- minAbs}
 
   # Processing print argument
-  matches <- pmatch(tolower(print), c("existence", "sign", "scale", "existence", "all"))
+  matches <- pmatch(tolower(print), c("existence", "sign", "scale", "all"))
 
   # Build up model names for table
-  modelNames <- rlang::enexprs(...)
+  modelNames <- as.character(rlang::enexprs(...))
   models <- list2(...)
   for(mNo in seq_along(models)) {
     if(!is.null(attr(models[[mNo]], "model"))) names(models)[mNo] <- attr(models[[mNo]], "model")
@@ -144,7 +145,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
       }
     } else { names(models)[mNo] <- as.character(modelNames[[mNo]]) }
   }
-  modelNames <- names(models)
+  modelNames[!is.na(names(models))] <- names(models)[!is.na(names(models))]
 
   # Default caption
   if(is.null(caption)) {
@@ -153,16 +154,35 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
 
   # Assemble all MICs
   tMICs <- NULL
+  tSEs <- NULL
   for(mNo in seq_along(models)) {
     aModel <- models[[mNo]]
     aName <- names(models)[mNo]
-    if(is.null(attr(aModel, "MIC"))) {aModel <- MIC(aModel, standardized = standardize)}
+    if(is.null(attr(aModel, "MIC"))) {aModel <- MIC(aModel, standardized = standardize, se=se)}
     flatModel <- flattenMIC(aModel, includeModel=TRUE, model=aName, cullTiny=FALSE)
+    flatSE <- NULL
+    if((is.na(se) || se) && !is.null(attr(aModel, "SE")))
+      {flatSE <- flattenMIC(attr(aModel, "SE"), includeModel=TRUE, model=paste0(aName, "_SE"), cullTiny=FALSE)}
     tMICs <- rbind(tMICs, flatModel)
+    tSEs <- rbind(tSEs, flatSE)
   }
 
+  se <- (is.na(se) || se) && (!is.null(tSEs) && nrow(tSEs) > 0)  # No SEs if we have no SEs.
   # Widen--one column per model, one row per path
   wideMIC <- pivot_wider(tMICs, names_from="model", values_from="value")
+  if(se) {
+    wideSE <- pivot_wider(tSEs, names_from="model", values_from="value")
+    wideMIC <- left_join(wideMIC, wideSE, by=c("from", "to"))
+
+    # reorder:
+    newNameOrder <- intersect(paste(rep(modelNames, each=2), c("", "_SE")), names(wideMIC))
+    newNameOrder <- c("from", "to", newNameOrder)
+    if(length(newNameOrder) == length(names(wideMIC))) {
+      # In case of duplicate naming problems, skip reordering.
+      wideMIC <- wideMIC[,newNameOrder]
+    }
+  }
+
 
   # Handle default from and to now that we know what our options are
   if(OpenMx:::single.na(from)) from <- unique(wideMIC$from)
@@ -183,7 +203,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
       return(invisible(wideMIC))
     } else if(any(!is.na(matches))) {
     # If anything else is requested, pretty print all non-zeros
-      wideMIC <- wideMIC[wideMIC$from %in% from & wideMIC$to %in% to & abs(wideMIC[,3] > minAbs),]
+      wideMIC <- wideMIC[wideMIC$from %in% from & wideMIC$to %in% to & ifelse(is.na(wideMIC[,3]), FALSE, abs(wideMIC[,3] > minAbs)),]
       print(kable(wideMIC, caption=caption))
       return(invisible(wideMIC))
     }
@@ -221,7 +241,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
 
 
   # Essentially the same:
-  others <- others %>% dplyr::filter(!differs)
+  others <- others %>% dplyr::filter(!differs) %>% data.frame()
   #%>% arrange(desc(max(abs(diff(.data[[,modelNames]])))))
 
   # Combinations
@@ -231,12 +251,14 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
   output <- all
   if(splitByType)
     output <- list(exist=existence, sign=sign, scale=scale, other=others, all=all, any=any)
-  if(1 %in% matches) print(kable(existence[existence$from %in% from & existence$to %in% to,], caption=paste(caption, "Existence differences", sep="\n")))
-  if(2 %in% matches) print(kable(sign     [sign     $from %in% from & sign     $to %in% to,], caption=paste(caption, "Sign differences", sep="\n")))
-  if(3 %in% matches) print(kable(scale    [scale    $from %in% from & scale    $to %in% to,], caption=paste(caption, "Scale differences", sep="\n")))
-  if(4 %in% matches) print(kable(other    [other    $from %in% from & other    $to %in% to,], caption=paste(caption, "Existence differences", sep="\n")))
-  if(5 %in% matches) print(kable(all      [all      $from %in% from & all      $to %in% to,], caption=paste(caption, "All differences", sep="\n")))
-
+  theTable <- NULL
+  if(1 %in% matches) { theTable <- rbind(theTable, existence[existence$from %in% from & existence$to %in% to,]); caption=paste(caption, "Existence &", sep=" ")}
+  if(2 %in% matches) { theTable <- rbind(theTable, sign     [sign     $from %in% from & sign     $to %in% to,]); caption=paste(caption, "Sign &", sep=" ")}
+  if(3 %in% matches) { theTable <- rbind(theTable, scale    [scale    $from %in% from & scale    $to %in% to,]); caption=paste(caption, "Scale &", sep=" ")}
+  if(4 %in% matches) { theTable <- rbind(theTable, other    [other    $from %in% from & other    $to %in% to,]); caption=paste(caption, "Existence &", sep=" ")}
+  if(5 %in% matches) { theTable <- rbind(theTable, all      [all      $from %in% from & all      $to %in% to,]); caption=paste(caption, "All &", sep=" ")}
+  if(length(matches) > 0) {caption <- substr(caption, 1, nchar(caption) -1)}
+  if(nrow(theTable) > 0) {print(kable(theTable, caption=caption))}
 
   if(any(!is.na(matches))) return(invisible(output))
   else return(output)

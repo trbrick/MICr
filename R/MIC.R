@@ -8,6 +8,7 @@
 ##'
 ##' @param model An SEM model (see details for compatibility)
 ##' @param latents Compute causal influences of/on latent variables? (default TRUE)
+##' @param se Compute SEs? (default TRUE, but only available for some models)
 ##' @param standardized Compute causal influences using the standardized model parameters? (default FALSE)
 ##' @param exogenous Compute causal influences of exogenous variables? (default TRUE)
 ##' @param ... Other parameters passed to mxEval (e.g. defvar.row=)
@@ -21,29 +22,55 @@
 ##' influence is the sum of all paths that connect one variable to another by
 ##' following only single-headed arrows, and only in the direction of the arrow.
 ##'
-##' Currently accepts MxRAMModel objects, and converts basic lavaan and blavaan objects
+##' Standard errors are computed by the difference method using the mxSE function.
+##'
+##' Currently accepts MxRAMModel objects, and converts basic lavaan and blavaan objects.
+##' Standard Errors are not currently available for converted or standardized models.
 ##'
 ##' @seealso MICTable
 ##'
 ##' @import OpenMx
 ##'
 ##' @export
-MIC <- function(model, latents=TRUE, standardized=FALSE, exogenous=TRUE, ...) {
-	
-  # Convert to MxRAMModel
+MIC <- function(model, latents=TRUE, standardized=FALSE, exogenous=TRUE, se=NA, ...) {
+
+    # Convert to MxRAMModel
     model <- as.MxRAMModel(model, standardized=standardized, exogenous=exogenous)
-  
-  A <- mxEval(A, model, ...)
-    I <- diag(1, nrow(A))
-    solution <- solve(I-A)
+
+    # Add I and compute:
+    model <- mxModel(model, mxMatrix("Iden", nrow(model$A), name="I"))
+    solution <- mxEval(solve(I-A), model, ...)
     if(!latents) {
 	      Fmat <-mxEval(F, model, ...)
 	    solution <- Fmat %&% solution
-  }
+    }
+
     outVal <- data.frame(solution)
-    attr(outVal, "model") <- model$name
-    attr(outVal, "MIC") <- TRUE
-    return(outVal)
+    ses <- NULL
+
+    # Prep SEs if available:
+    if(is.na(se) || se) {
+
+      ses <- tryCatch(expr = suppressWarnings(mxSE(solve(I-A), model, silent=TRUE, ...)),
+                      error=function(e) {return(NULL)})
+      if(!is.na(se) && is.null(ses)) {
+        warning("Could not compute standard errors. If these were not originally OpenMx models, that's why. Look for updates to this in the future, but also see umxLav2RAM() in the meantime.  If they were all MxModels, try running mxCheckIdentification() on your models to make sure they are well-identified.  ")
+      }
+    }
+    if(!is.null(ses)) {
+      if(!latents) {
+        ses <- Fmat %&% ses
+      }
+
+      colnames(ses) <- colnames(solution)
+      rownames(ses) <- rownames(solution)
+      ses <- data.frame(ses)
+   }
+
+   if(!is.null("ses")) {attr(outVal, "SEs") <- ses}
+   attr(outVal, "model") <- model$name
+   attr(outVal, "MIC") <- TRUE
+   return(outVal)
 }
 
 

@@ -6,7 +6,7 @@
 \usage{
 MICTable(..., minAbs = 0.01, minDiff = NA, splitByType = TRUE,
   standardize = FALSE, caption = NULL, print = c("exist", "sign",
-  "scale"), from = NA, to = NA)
+  "scale"), from = NA, to = NA, se = NA)
 }
 \arguments{
 \item{...}{MxModels from which to extract MICs}
@@ -24,6 +24,8 @@ MICTable(..., minAbs = 0.01, minDiff = NA, splitByType = TRUE,
 \item{from}{A list of sources: paths not from a listed source are not printed.  Default NA (print all).}
 
 \item{to}{A list of the outcomes; paths not ending at a listed outcome are not printed. Default NA (print all).}
+
+\item{se}{Whether or not to return standard errors (default TRUE).  Model must be a run MxModel, but consult umxLav2RAM to create and run an MxModel using lavaan syntax}
 }
 \value{
 If splitByType is FALSE, a single data frame containing all implied causal effects, as compared across all models.
