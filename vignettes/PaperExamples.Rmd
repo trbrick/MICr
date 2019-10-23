@@ -1,0 +1,336 @@
+---
+title: "Matrices of Implied Causation: Examples from Brick & Bailey (submitted)"
+author: "Timothy R. Brick"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SimpleMediation}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+This document carries the code and output used in Brick and Bailey (submitted).  Specifically, we illustrate the use of Matrices of Implied Causation using a mediation model and three examples from the literature.  They are:
+
+0. A dummy mediation model
+1. Three models from Tomarken & Waller (2003), in this case simplex model variants in their Example 1.
+2. CLPM in comparison to RI-CLPM from Bailey et al., 2007.
+3. RI-CLPM intervention
+
+# Setup and packages
+
+First we need MICr, OpenMx, and also some tools for plotting.
+```{r message=FALSE}
+
+library(MICr)
+library(OpenMx)
+# Turn on plots if semPlot is available:
+if(library(semPlot, logical.return=TRUE))  drawPlots<-TRUE else drawPlots <- FALSE 
+```
+
+```{r, include=FALSE}
+# Prettify figures
+knitr::opts_chunk$set(comment=NA, fig.width=6, fig.height=6, fig.align="center")
+# kableExtra helps with formatting, but only when rendering to HTML.  This code helps make tables clean when rendered from Rmarkdown into Word, or at the console.
+library(knitr)
+if(interactive()) {options(kableExtra.auto_format = FALSE)}
+asis <- "markup"
+panTo <- knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"
+if(!is.null(panTo) && panTo == "html") {library(kableExtra); asis<-"asis"}
+```
+
+
+# Example 0: Pedagogical mediation model
+The first is a dummy example:
+```{r, XYZExample}
+XYZmodel <- mxModel("XYZ", manifestVars=c("X", "Y", "Z"), type="RAM",
+  mxPath(from="Z", to="Y", values=.6, labels="\\Beta"),
+  mxPath(from="X", to=c("Y", "Z"), values=c(.2, .8), labels=c("\\lambda", "\\alpha")),
+  mxMatrix("Iden",3,name="I"))
+```
+
+Whenever we run a model like this, I'll add a sempaths plot.  These models are complex, so the plot generated there is rarely a good view of what the model should look like.  The figures in the paper itself are a better view of the models, but for generation purposes we create them here.  They are generated with Onyx (see http://onyx.brandmaier.de/ for more), although some are modified for readability.
+```{r warning=FALSE, message=FALSE}
+if(drawPlots) semPaths(XYZmodel)
+```
+
+We can render the MIC for this model directly.
+```{r}
+MIC(XYZmodel)
+```
+
+The MIC is read like the `A` matrix in a RAM model: the path from X to Z is in the column for X and the row for Z (here, it is .8).  As expected, this shows the total effect--the model-implied causal influence--from each variable to each other variable.
+
+This can be rendered more succinctly as a MIC Table:
+```{r, results=asis}
+MICTable(XYZmodel)
+```
+
+
+# Example 1: Three models from Tomarken & Waller (2003)
+The first example shows three cases from Tomarken & Waller's 2003 paper.  These three models fit identically, but make very different causal predictions.
+
+## Tomarken Example 1A:
+The first model is a 
+```{r}
+tomarken1A <- mxModel("Tomarken1A", 
+  type="RAM", manifestVars = c("X", "Y", "Z"), latentVars = c("Ry", "Rz"),
+  
+  # Latent to manifest paths
+  mxPath(from="Ry", to="Y",  free=FALSE, value=1.0, label=c("Ry_to_Y") ),
+  mxPath(from="Rz", to="Z",  free=FALSE, value=1.0, label=c("Rz_to_Z") ),
+  
+  # Manifest chain
+  mxPath(from="X",  to="Y",  free=TRUE, values=0.8, labels=c("\\alpha") ),
+  mxPath(from="Y",  to="Z",  free=TRUE, values=0.8, labels=c("\\beta") ),
+  
+  # Variances
+  mxPath(from=c("Ry", "Rz", "X"), 
+         arrows=2, free=TRUE, values=1.0,  
+         labels=c("V_Ry", "V_Rz", "V_X") )
+)
+```
+
+Sempaths plots of these models show the differences fairly well.
+```{r, warning=FALSE, message=FALSE}
+if(drawPlots) semPaths(tomarken1A)
+```
+
+## Tomarken Example  1B
+Model 1B resembles model 1A, but the chain flows in the opposite direction, with Z predicting Y and Y predicting X.
+```{r warning=FALSE, message=FALSE}
+tomarken1B <- mxModel("Tomarken1B", 
+  type="RAM", manifestVars = c("X","Y","Z"), latentVars = c("Rx", "Ry"),
+  
+    # Latent to manifest paths
+  mxPath(from="Ry", to="Y",  free=FALSE, value=1.0, label=c("Ry_to_Y") ),
+  mxPath(from="Rx", to="X",  free=FALSE, value=1.0, label=c("Rx_to_X") ),
+  
+  # Manifest chain
+  mxPath(from="Z",  to="Y",  free=TRUE, values=0.8, labels=c("\\beta") ),
+  mxPath(from="Y",  to="X",  free=TRUE, values=0.8, labels=c("\\alpha") ),
+  
+  # Variances
+  mxPath(from=c("Ry", "Rx", "Z"), 
+         arrows=2, free=TRUE, values=1.0,  
+         labels=c("V_Ry", "V_Rx", "V_Z") )
+)
+# Throws a warning because the model has not been run.
+if(drawPlots) semPaths(tomarken1B)
+```
+
+## Tomarken Example  1C
+The last Tomarken example model is a fork, with Y predicting X and Z.
+```{r, warning=FALSE, message=FALSE}
+tomarken1C <- mxModel("Tomarken1C", 
+    type="RAM", manifestVars = c("X","Y","Z"), latentVars = c("Rz","Rx"),
+    
+    # Fork loadings
+    mxPath(from="Y", to=c("Z","X"), free=TRUE, values=.8, labels=c("\\beta","\\alpha") ),
+    
+    # Latent residual terms
+    mxPath(from="Rz", to="Z",  free=TRUE, value=1.0, label="Rz_to_Z" ),
+    mxPath(from="Rx", to="X",  free=TRUE, value=1.0, label="Ry_to_Y" ),
+    
+    mxPath(from=c("Y", "Rx", "Rz"), 
+            arrows=2, free=FALSE, values=1.0,
+           labels=c("V_Y", "VRx", "V_Rz"))
+    )
+# Throws a warning because the model has not been run.
+if(drawPlots) semPaths(tomarken1C)
+```
+
+## Tomarken MICs
+The MICs can be rendered directly as matrices.
+```{r}
+MIC(tomarken1A)
+MIC(tomarken1B)
+MIC(tomarken1C)
+```
+
+
+A more succinct approach is to plot the MICTable that compares all three.  Because the residuals are not of particular interest, we focus only on the influences from and to X, Y, and Z.  Note that this table differs in its sorting function from the one displayed in the paper.
+```{r}
+MICTable(tomarken1A, tomarken1B, tomarken1C, from=c("X", "Y", "Z"), to=c("X", "Y", "Z"))
+```
+
+
+# Example 2: CLPMs from Duncan, et al.
+Example 2 comes from Duncan(2007) courtesy of  Bailey et al. (2018?).  Three fairly intricate models, and we'll do one better by dropping the person-level intercepts.
+
+First, need the data and the correlation matrix--it's in the paper, luckily.
+```{r RICLPMBase}
+means <- c(68.08, 93.09, 107.40, 116.80, 49.91, 73.87, 90.65, 102.87)
+times <- c("K", 1:3)
+nTimes <- length(times)
+
+manifests <- paste(rep(c("Read", "Math"), each=nTimes), rep(times, 2), sep="")
+occasions <- paste(rep(c("OR", "OM"), each=nTimes), rep(times, 2), sep="") 
+sds <- c(14.17, 18.02, 15.51, 14.82, 12.84, 17.64, 16.66, 15.63)
+corMat <- matrix(c(
+1.00, 0.79, 0.71, 0.64, 0.73, 0.66, 0.62, 0.59,
+0.79, 1.00, 0.86, 0.78, 0.71, 0.73, 0.70, 0.67,
+0.71, 0.86, 1.00, 0.85, 0.69, 0.71, 0.74, 0.69,
+0.64, 0.78, 0.85, 1.00, 0.67, 0.70, 0.73, 0.72,
+0.73, 0.71, 0.69, 0.67, 1.00, 0.83, 0.78, 0.75,
+0.66, 0.73, 0.71, 0.70, 0.83, 1.00, 0.86, 0.82,
+0.62, 0.70, 0.74, 0.73, 0.78, 0.86, 1.00, 0.88,
+0.59, 0.67, 0.69, 0.72, 0.75, 0.82, 0.88, 1.00), nrow=8)
+covMat <- diag(sds) %&% corMat
+names(means) <- manifests
+dimnames(covMat) <- list(manifests, manifests)
+dimnames(corMat) <- list(manifests, manifests)
+```
+
+## Duncan CLPM1
+Our first model has fixed 0 loadings from the latent intercepts.
+```{r CLPM1, warning=FALSE, message=FALSE}
+ModelCLPM1 <- mxModel("CLPM1", type="RAM", manifestVars = manifests,
+                     latentVars=c("Reading", "Math", occasions),
+                     
+                     # OR/OM -> Math/Reading paths
+                     mxPath(from=occasions, to=manifests, 
+                            arrows=1, values=1, free=FALSE),
+                     
+                     # Occasion variances
+                     mxPath(from=occasions, arrows=2, values=1, free=TRUE, 
+                            labels=paste0("V_", occasions), lbound=.1),
+
+                     # Covariation of error/process
+                     mxPath(from=occasions[1:4], to=occasions[5:8],
+                            arrows=2, free=TRUE, values=.25, 
+                            labels=paste0("ORM_", times)),
+                     
+                     # AR of Reading
+                     mxPath(from=occasions[1:3], to=occasions[2:4], 
+                            arrows=1, free=TRUE, values=.5, 
+                            labels=paste0("AR_R_", times[1:3])),
+                     
+                     # AR of Math
+                     mxPath(from=occasions[5:7], to=occasions[6:8], 
+                            arrows=1, free=TRUE, values=.3, 
+                            labels=paste0("AR_M_", times[1:3])),
+                     
+                     # Cross-lagged R->M
+                     mxPath(from=occasions[1:3], to=occasions[6:8], 
+                            arrows=1, free=TRUE, values=.10, 
+                            labels=paste0("CL_R", times[1:3], "_M", times[2:4])),
+                     
+                     # Cross-lagged M->R
+                     mxPath(from=occasions[5:7], to=occasions[2:4], 
+                            arrows=1, free=TRUE, values=.03, 
+                            labels=paste0("CL_M", times[1:3], "_R", times[2:4])),
+                     
+                     mxData(type="cor", observed = corMat, numObs = 9612)
+)
+CLPM1 <- mxTryHard(ModelCLPM1)
+if(drawPlots) semPaths(CLPM1)
+```
+
+## Duncan CLPM2
+CLPM2 is modified from CLPM1, and adds loadings and a free covariance for the latent intercepts so that they have influence on the model.  We mark the random intercepts as having identical loadings on the manifest measurements across time.
+```{r RI-CLPM2, message=FALSE, warning=FALSE}
+ModelCLPM2 <- mxModel(CLPM1,
+                       
+                    # RI factor loadings (fixed across time)
+                     mxPath(from="Reading", to=paste0("Read", times), 
+                            values=1, free=TRUE, labels=paste0("Read_Loadings")),
+                     mxPath(from="Math", to=paste0("Math", times),
+                            values=1, free=TRUE, labels=paste0("Math_Loadings")), 
+                    
+                    # Free RI covariance; RIs are standardized for identification.
+                    mxPath(from=c("Reading", "Math"), 
+                           arrows=2, connect="unique.pairs", free=c(TRUE, FALSE, TRUE), 
+                           values=c(1,.8, 1), labels=c("V_R", "CV_RM", "V_M")),
+                    
+                    name="CLPM2"
+)
+CLPM2 <- mxTryHard(ModelCLPM2)
+if(drawPlots) semPaths(CLPM2)
+```
+
+## CLPM MICs
+Once we have the details of more specific models, we can examine them in detail to compare the differences.  We are specifically interested in the effects of Kindergarten occasion measurements on the final outcomes.
+```{r, results=asis}
+MICTable(CLPM1, CLPM2, from=c("OMK", "ORK"), 
+         to=paste0(rep(c("Read", "Math"), each=3), 1:3), se=FALSE)
+```
+
+
+# Example 3: Adding Interventions
+We take the example from CLPM2A, and we add in a few more elments.  Specifically, we add two interventions that are latent variables.  Note that these are approximated based on theory or prior work and not statistically estimated from this data set.  We fix the loadings in the estimation of these data so that they do not influence the rest of the fitting procedures.
+
+```{r}
+ModelIxn<- mxModel("InterventionModel", type="RAM", manifestVars = manifests,
+                     latentVars=c("Reading", "Math", occasions, "XRead", "ReadStudy", "AllStudy"),
+                     
+                     # RI factor loadings
+                     mxPath(from="Reading", to=paste0("Read", times), 
+                            arrows=1, values=1, free=TRUE, 
+                            labels=paste("Read", times, sep="_")),
+                     mxPath(from="Math", to=paste0("Math", times), 
+                            arrows=1, values=1, free=TRUE, 
+                            labels=paste("Math", times, sep="_")),
+                     
+                     # Latent math/reading paths
+                     mxPath(from=occasions, to=manifests, arrows=1, values=1, free=FALSE),
+                   
+                     # Occasion variances
+                     mxPath(from=occasions, arrows=2, values=1, free=TRUE, 
+                            labels=paste0("V_", occasions), lbound=.1),
+                     
+                     # RI Var/Covar.  Icpts standardized by definition.
+                     mxPath(from=c("Reading", "Math"), 
+                            arrows=2, connect="unique.pairs", values=c(1,.8, 1), 
+                            free=c(FALSE, TRUE, FALSE), labels=c("VR", "CRM", "VM")), 
+                     
+                     # Covariation of error/process
+                     mxPath(from=occasions[1:4], to=occasions[5:8], arrows=2, 
+                            free=TRUE, values=.25, labels=paste0("ORM_", times)),
+                     
+                     # AR of Reading
+                     mxPath(from=occasions[1:3], to=occasions[2:4], arrows=1, 
+                            free=TRUE, values=.5, labels=paste0("AR_R_", times[1:3])),
+                     
+                     # AR of Math
+                     mxPath(from=occasions[5:7], to=occasions[6:8], arrows=1, 
+                            free=TRUE, values=.3, labels=paste0("AR_M_", times[1:3])),
+                     
+                     # Cross-lagged R->M
+                     mxPath(from=occasions[1:3], to=occasions[6:8], arrows=1, 
+                            free=TRUE, values=.10, 
+                            labels=paste0("CL_R", times[1:3], "_M", times[2:4])),
+                     
+                     # Cross-lagged M->R
+                     mxPath(from=occasions[5:7], to=occasions[2:4], arrows=1, 
+                            free=TRUE, values=.03, 
+                            labels=paste0("CL_M", times[1:3], "_R", times[2:4])),
+                    
+                     # RI factor loadings
+                     mxPath(from="Reading", to=paste0("Read", times), arrows=1, 
+                            values=1, free=TRUE, labels=paste0("Read_Loadings")),
+                     mxPath(from="Math", to=paste0("Math", times), arrows=1, 
+                            values=1, free=TRUE, labels=paste0("Math_Loadings")),
+                    
+                     # Interventions:
+                     mxPath(from="XRead", to="OR1", 
+                            values=1, free=FALSE),
+                     mxPath(from="ReadStudy", to=c("OR1",  "OR2"), 
+                            values=.6, free=FALSE),
+                     mxPath(from="AllStudy", to=c("OM1", "OM2", "OR1",  "OR2"), 
+                            values=c(.4, .3, .4, .3),
+                            free=FALSE),
+
+                     mxData(type="cor", observed = corMat, numObs = 9612)
+        )
+Ixn <- mxTryHard(ModelIxn, extraTries = 100)
+```
+
+Again, we can plot this, but it's sufficiently complicated that it's difficult to see all the details in the plot.
+```{r}
+if(drawPlots) semPaths(Ixn)
+```
+
+Of particular import for this comparison, we can look at the influence of the three interventions based on this model, including standard errors computed using the difference method.
+```{r, results=asis}
+MICTable(Ixn, from=c("XRead", "ReadStudy", "AllStudy"), to=c("Read3"))
+```
+
+From here, we can clearly see that for reading at grade 3, the ReadStudy intervention has the largest model-implied causal influence on the outcome.  Note once again that this may not be the whole story.
