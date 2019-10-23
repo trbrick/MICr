@@ -257,7 +257,7 @@ MICTable(CLPM1, CLPM2, from=c("OMK", "ORK"),
 # Example 3: Adding Interventions
 We take the example from CLPM2A, and we add in a few more elments.  Specifically, we add two interventions that are latent variables.  Note that these are approximated based on theory or prior work and not statistically estimated from this data set.  We fix the loadings in the estimation of these data so that they do not influence the rest of the fitting procedures.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 ModelIxn<- mxModel("InterventionModel", type="RAM", manifestVars = manifests,
                      latentVars=c("Reading", "Math", occasions, "XRead", "ReadStudy", "AllStudy"),
                      
@@ -334,3 +334,28 @@ MICTable(Ixn, from=c("XRead", "ReadStudy", "AllStudy"), to=c("Read3"))
 ```
 
 From here, we can clearly see that for reading at grade 3, the ReadStudy intervention has the largest model-implied causal influence on the outcome.  Note once again that this may not be the whole story.
+
+## Extension: Pareto Frontiers (not discussed in paper)
+There are cases where a researcher may wish to compare potential interventions on both the cost and effectiveness of interventions, rather than simply the effectiveness.  While the discussion of multiobjective optimization as a whole is beyond the scope of this vignette, we provide a basic function to allow this type of comparison in the `MICr` package.
+
+Specifically, the package permits researchers to generate a cost table that lays out the costs of implementation of their predicted interventions, and to generate a plot of the [Pareto Frontier](https://en.wikipedia.org/wiki/Pareto_efficiency#Pareto_frontier), which shows the most effective interventions at each level of cost.
+
+In practice, cost functions can be complicated to compute, since challenges ranging from effort, employee time, logistical issues, recruitment, participant buy-in and dropout, etc., may need to be weighed in this computation.  When all else fails, total monetary cost (e.g. in thousands of dollars) to apply the intervention to a given number of participants is often used as a general factor. Here we generate a cost function arbitrarily for pedagogical purposes; this should not be interpreted to be related to any real-world intervention.
+
+```{r}
+costFrame <- data.frame(names=c("XRead", "ReadStudy", "AllStudy"), cost=c(100,250,280))
+```
+
+The cost frame and the model can be submitted to the paretoFront() function, which will compute and plot the pareto frontier for a given outcome and cost.
+```{r}
+paretoFront(mic=Ixn, outcome="Read3", costs=costFrame)
+```
+
+The Pareto plot shows cost on the X-axis and effect (here in terms of grade-3 reading) on the Y-axis.  The line indicates the Pareto Frontier--the maximum effect that can be expected at a given level of cost.  Following the line to the left from a given cost shows lowest-cost intervention with that effectiveness.  Here, for a cost of 200, the best intervention is XRead, which is also the best at a cost of 100.  For a cost of 300 or less, the model-implied causal effect of ReadStudy on third grade reading is higher than that of any other intervention.
+
+It is worth noting that reading at grade 3 may not be the only outcome of interest.  For example, the plot changes drastically if we examine math achievement at grade 3.
+```{r}
+paretoFront(mic=Ixn, outcome="Math3", costs=costFrame)
+```
+
+Researchers should think hard about what outcomes are important, and potentially consider several cost functions in determining the results.
