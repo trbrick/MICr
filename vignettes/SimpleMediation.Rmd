@@ -45,4 +45,4 @@ MICTable(XYZmodel, caption="Simple Mediation MIC Table: Effects on Y", to="Y")
 MICTable(XYZmodel, caption="Simple Mediation MIC Table: Effects on Z", to="Z")
 ```
 
-This allows us to identify the differences in the causal structure in a more direct and sensible way.
+This allows us to identify the unique elements of the causal structure in a more direct and sensible way.
