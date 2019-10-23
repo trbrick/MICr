@@ -1,12 +1,11 @@
 ---
 title: "Matrices of Implied Causation: Intervention Comparison"
+author: Timothy R. Brick
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{InterventionComparison}
-  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{CLPMs}
   %\VignetteEngine{knitr::rmarkdown}
-editor_options: 
-  chunk_output_type: console
+  %\VignetteEncoding{UTF-8}
 ---
 
 0. Introduction
@@ -16,10 +15,10 @@ editor_options:
 
 ## Introduction
 In this vignette, we provide an introduction to using MICs to select among a set of interventions.  We assume the mediation model described in Brick & Bailey (submitted), in which Z partially mediates the effect of X on Y, and in which there are several approaches for 
-```{r setup}
+```{r setup, warning=FALSE, message=FALSE}
 library(MICr)
 library(umx)
-library(kableExtra)
+library(knitr)
 drawPlots <- library(semPlot, logical.return = TRUE)  # Plot only if there's a plotting function.
 knitr::opts_chunk$set(fig.align="center")
 ```
@@ -42,7 +41,7 @@ theData <- data.frame(Predictor1, Predictor2, Mediator, Outcome)
 
 
 We'll start out by just building the mediation model. We'll use `umx` here for simplicity and `semPaths` for plotting.
-```{r, results='asis', fig.width=6, fig.height=6}
+```{r, results='asis', fig.width=6, fig.height=6, warning=FALSE,message=FALSE}
 model <- umxRAM("MediationModel", data=theData,
                 # Predictor Effects
                 umxPath(fromEach=c("Predictor1", "Predictor2"), to=c("Mediator", "Outcome")),
@@ -69,7 +68,7 @@ MICTable(model, se=TRUE)
 
 ## Evaluating potential interventions
 In this case, we will examine the effects of three different potential interventions on the outcome: one intervention (`ModifyP1`) that improves `Predictor1` by two points, another (`ModifyP2`) that increases `Predictor2` by one point, and a joint intervention `ModifyBoth` that increases both by a half point.
-```{r, results='asis', fig.width=6, fig.height=6}
+```{r, results='asis', fig.width=6, fig.height=6, warning=FALSE,message=FALSE}
 ixnModel <- umxRAM("MediationModel", data=theData,
                 # Predictor Effects
                 umxPath(fromEach=c("Predictor1", "Predictor2"), to=c("Mediator", "Outcome")),
@@ -84,7 +83,7 @@ ixnModel <- umxRAM("MediationModel", data=theData,
                 # Variances, means, and intercepts
                 umxPath(v.m. = c("Predictor1", "Predictor2", "Mediator", "Outcome"))
 )
-semPaths(ixnModel)
+if(drawPlots) semPaths(ixnModel)
 ```
 
 The intervention model's MIC looks like this:
@@ -115,7 +114,7 @@ In cases with many possible outcomes, it may be helpful to generate a pareto plo
 The cost function here is fairly simple:
 ```{r, results="asis"}
 costFrame <- data.frame(name=c("ModifyP1", "ModifyP2", "ModifyBoth"), cost=c(1, 2, 1.5))
-kable(costFrame)
+costFrame
 ```
 
 And then we can compute the pareto front and plot it directly from the MIC package.

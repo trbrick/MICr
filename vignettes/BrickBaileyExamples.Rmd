@@ -1,11 +1,11 @@
 ---
-title: "Matrices of Implied Causation: Examples from Brick & Bailey (submitted)"
+title: 'Matrices of Implied Causation: Examples from Brick & Bailey (submitted)'
 author: "Timothy R. Brick"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{SimpleMediation}
-  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{CLPMs}
   %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 This document carries the code and output used in Brick and Bailey (submitted).  Specifically, we illustrate the use of Matrices of Implied Causation using a mediation model and three examples from the literature.  They are:
 
@@ -343,7 +343,7 @@ Specifically, the package permits researchers to generate a cost table that lays
 In practice, cost functions can be complicated to compute, since challenges ranging from effort, employee time, logistical issues, recruitment, participant buy-in and dropout, etc., may need to be weighed in this computation.  When all else fails, total monetary cost (e.g. in thousands of dollars) to apply the intervention to a given number of participants is often used as a general factor. Here we generate a cost function arbitrarily for pedagogical purposes; this should not be interpreted to be related to any real-world intervention.
 
 ```{r}
-costFrame <- data.frame(names=c("XRead", "ReadStudy", "AllStudy"), cost=c(100,250,280))
+costFrame <- data.frame(name=c("XRead", "ReadStudy", "AllStudy"), cost=c(100,250,280))
 ```
 
 The cost frame and the model can be submitted to the paretoFront() function, which will compute and plot the pareto frontier for a given outcome and cost.
