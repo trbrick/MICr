@@ -1,5 +1,5 @@
 ---
-title: "InterventionComparison"
+title: "Matrices of Implied Causation: Intervention Comparison"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{InterventionComparison}
@@ -9,21 +9,22 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
+0. Introduction
+1. Mediation model MICs
+2. Potential Intervention Evaluation
+3. Multiple Objective Optimization
 
+## Introduction
+In this vignette, we provide an introduction to using MICs to select among a set of interventions.  We assume the mediation model described in Brick & Bailey (submitted), in which Z partially mediates the effect of X on Y, and in which there are several approaches for 
 ```{r setup}
 library(MICr)
 library(umx)
-library(semPlot)
-library(knitr)  # for kable.
+library(kableExtra)
+drawPlots <- library(semPlot, logical.return = TRUE)  # Plot only if there's a plotting function.
+knitr::opts_chunk$set(fig.align="center")
 ```
 
-In this vignette, we provide an introduction to using MICs to select among a set of interventions.  We assume the mediation model described in Brick & Bailey (submitted), in which Z partially mediates the effect of X on Y.
+## Mediation Model MICs
 
 We can construct a multiple mediator data set with a few quick lines of R code:
 ```{r}
@@ -32,38 +33,43 @@ set.seed(1234)
 Predictor1 <- rnorm(100)
 Predictor2 <- rnorm(100)
 # Mediator
-Mediator  <- .4*Predictor1 + .6*Predictor2 + rnorm(100)
+Mediator  <- .3*Predictor1 + .7*Predictor2 + rnorm(100)
 #Outcome
 Outcome  <-0*Predictor1 + 0.4*Predictor2 + .7*Mediator + rnorm(100) 
 # Combined Data
 theData <- data.frame(Predictor1, Predictor2, Mediator, Outcome)
-
 ```
 
 
-
-We'll start out by just building the mediation model. We'll use umx here for simplicity and plotting.
-```{r}
+We'll start out by just building the mediation model. We'll use `umx` here for simplicity and `semPaths` for plotting.
+```{r, results='asis', fig.width=6, fig.height=6}
 model <- umxRAM("MediationModel", data=theData,
                 # Predictor Effects
                 umxPath(fromEach=c("Predictor1", "Predictor2"), to=c("Mediator", "Outcome")),
                 
-                # (Nonexistant) Intervention Effects
-                umxPath(from="ModifyP1", to="Predictor1", fixedAt=1.0),
-                umxPath(from="ModifyP2", to="Predictor2", fixedAt=.8),
-                umxPath(from="ModifyBoth", to=c("Predictor1", "Predictor2"), fixedAt=c(.6, .4)),
-
                 # Mediator Effect
                 umxPath(from="Mediator", to="Outcome"),
                 # Variances, means, and intercepts
                 umxPath(v.m. = c("Predictor1", "Predictor2", "Mediator", "Outcome"))
 )
-semPaths(model)
+if(drawPlots) semPaths(model)
 ```
 
 
+We can generate the causal implications of this model by computing the MIC. This table shows the model-implied causal effects of each variable on each other variable.  These are loading weights for cases where there is only a direct effect, and total effects when there are both direct and indirect effects.
+```{r}
+MIC(model)
+```
+
+We can format them more precisely (and with standard errors) using the `MICTable()` function:
+```{r results="asis"}
+MICTable(model, se=TRUE)
+```
+
+
+## Evaluating potential interventions
 In this case, we will examine the effects of three different potential interventions on the outcome: one intervention (`ModifyP1`) that improves `Predictor1` by two points, another (`ModifyP2`) that increases `Predictor2` by one point, and a joint intervention `ModifyBoth` that increases both by a half point.
-```{r, result='asis'}
+```{r, results='asis', fig.width=6, fig.height=6}
 ixnModel <- umxRAM("MediationModel", data=theData,
                 # Predictor Effects
                 umxPath(fromEach=c("Predictor1", "Predictor2"), to=c("Mediator", "Outcome")),
@@ -81,35 +87,39 @@ ixnModel <- umxRAM("MediationModel", data=theData,
 semPaths(ixnModel)
 ```
 
-
-The model's MIC looks like this:
-```{r, result='asis'}
-kable(MIC(ixnModel), caption="Simple Intervention MIC")
+The intervention model's MIC looks like this:
+```{r}
+MIC(ixnModel)
 ```
 
-The MIC is somewhat overwhelming, and the MICTable is similar.  Instead, we filter down to only the effects of the interventions on the specific outcome, Z.
+The MIC is somewhat intricate, so we'll again use the MICTable format:
+```{r, results='asis'}
+MICTable(ixnModel, caption="Intervention Results")
+```
 
-```{r, result='asis'}
+Even here, there's complexity.  It can be helpful to look directly at the effects of the interventions on the outcomes:
+```{r, results='asis'}
 MICTable(ixnModel, caption="Implied Intervention Effects On Output", from=c("ModifyP1", "ModifyP2", "ModifyBoth"), to="Outcome")
 ```
 
 ModifyP2 has the strongest predicted influence on the outcome, partially because the direct effects of P2 are so strong.  In case the mediator is also of interest, we can check the influence on that as well.
-```{r}
+```{r, results='asis'}
 MICTable(ixnModel, caption="Implied Intervention Effects On Output", from=c("ModifyP1", "ModifyP2", "ModifyBoth"), to="Mediator")
 ```
 
 If we're interested in modifying both the mediator and the outcome, ModifyP1 may be a better choice. If we are interested in modifying only the outcome, ModifyP2 is better.
 
+## Multiobjective Optimization
 In cases with many possible outcomes, it may be helpful to generate a pareto plot that balances the cost against the influence of the outcome.  A Pareto plot provides a tradeoff surface showing the maximum influence of outcome at a given level of cost.  We can do this by assigning costs to each of the interactions in the MIC Table for the outcome.
 
 The cost function here is fairly simple:
-```{r}
+```{r, results="asis"}
 costFrame <- data.frame(name=c("ModifyP1", "ModifyP2", "ModifyBoth"), cost=c(1, 2, 1.5))
-costFrame
+kable(costFrame)
 ```
 
 And then we can compute the pareto front and plot it directly from the MIC package.
-```{r}
+```{r, fig.width=6, fig.height=6}
 paretoFront(mic=ixnModel, outcome="Outcome", costs=costFrame)
 ```
 
@@ -122,7 +132,7 @@ costFrame
 ```
 
 Here, the pareto front may be more informative:
-```{r}
+```{r, fig.width=6, fig.height=6}
 paretoFront(mic=ixnModel, outcome="Outcome", costs=costFrame)
 ```
 
