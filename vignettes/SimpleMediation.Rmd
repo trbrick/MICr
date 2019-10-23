@@ -3,42 +3,40 @@ title: "SimpleMediation"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{SimpleMediation}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
 ---
-
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
+In this vignette, we lay out a very simplified mediation model as a means of understanding how Matrices of Implied Causality (MICs) can be applied. We first need to load in the `MICr` package.  If `semPlot` is installed, we'll use it, too.
 
 ```{r setup}
 library(MICr)
-library(OpenMx)
-library(knitr)  # for kable.
+# Messages suppressed for cleanliness
+suppressMessages(library(OpenMx)) 
+if(suppressMessages(library(semPlot, logical.return=TRUE)))  drawPlots<-TRUE else drawPlots <- FALSE 
 ```
 
-In this vignette, we lay out a very simplified mediation model as a means of understanding what the MIC does.
+The primary model is a fairly straightforward mediation model.  X is the predictor, Z the mediator, and Y is the outcome.
 ```{r, XYZExample}
 XYZmodel <- mxModel("XYZ", manifestVars=c("X", "Y", "Z"), type="RAM",
   mxPath(from="Z", to="Y", values=.6, labels="\\Beta"),
   mxPath(from="X", to=c("Y", "Z"), values=c(.2, .8), labels=c("\\lambda", "\\alpha")),
   mxMatrix("Iden",3,name="I"))
+if(drawPlots) suppressWarnings(semPaths(XYZmodel))
 ```
 
 The model's MIC looks like this:
 ```{r}
-kable(MIC(XYZmodel), caption="Simple Mediation MIC")
+MIC(XYZmodel)
 ```
 
-Note that Z->Y and X->Z remain identical, since there is only one path present to follow each link.  However, X->Y is two paths: one direct and one indirect.  The MIC path between them is the combination of the two.
+Note that Z->Y and X->Z are identical to the path loadings, since there is only one path present to follow each link.  However, X->Y is two paths: one direct and one indirect.  The MIC path between them is the total effect--the combination of the influences across the two paths.
 
 For ease of reporting, this can also be displayed as a MIC table.
 
 ```{r}
-kable(MICTable(XYZmodel), caption="Simple Mediation MIC Table")
+MICTable(XYZmodel, caption="Simple Mediation MIC Table")
 ```
 
 The table format has the easy ability to select using traditional data frame selection operators, but the `MICTable` function also has helpers.  For example, if we only care about the causal influences on Z or on Y:
