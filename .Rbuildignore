@@ -2,3 +2,4 @@
 ^\.Rproj\.user$
 ^\.git$
 .*\.gv$
+^README\.Rmd$
