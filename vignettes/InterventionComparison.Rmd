@@ -3,7 +3,7 @@ title: "Matrices of Implied Causation: Intervention Comparison"
 author: Timothy R. Brick
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{CLPMs}
+  %\VignetteIndexEntry{Interventions}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -61,7 +61,7 @@ MIC(model)
 ```
 
 We can format them more precisely (and with standard errors) using the `MICTable()` function:
-```{r results="asis"}
+```{r, results="asis"}
 MICTable(model, se=TRUE)
 ```
 

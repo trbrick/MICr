@@ -6,7 +6,7 @@
 \usage{
 MICTable(..., minAbs = 0.01, minDiff = NA, splitByType = TRUE,
   standardize = FALSE, caption = NULL, print = c("exist", "sign",
-  "scale"), from = NA, to = NA, se = NA)
+  "scale"), from = NA, to = NA, se = NA, N = NA)
 }
 \arguments{
 \item{...}{MxModels from which to extract MICs}
@@ -25,7 +25,10 @@ MICTable(..., minAbs = 0.01, minDiff = NA, splitByType = TRUE,
 
 \item{to}{A list of the outcomes; paths not ending at a listed outcome are not printed. Default NA (print all).}
 
-\item{se}{Whether or not to return standard errors (default TRUE).  Model must be a run MxModel, but consult umxLav2RAM to create and run an MxModel using lavaan syntax}
+\item{se}{Whether or not to return standard errors, and which to return.  Model must be a run MxModel, but consult umxLav2RAM to create and run an MxModel using lavaan syntax.
+See details.}
+
+\item{N}{The expected N size for hypothetical standard errors}
 }
 \value{
 If splitByType is FALSE, a single data frame containing all implied causal effects, as compared across all models.
@@ -55,8 +58,20 @@ The print= argument can be used to trigger pretty-printing using kable from the 
    Pretty-printing may be disabled by setting it to FALSE or an empty vector.
    If only one model is provided, "all" will print the entire model table; any other legal value will print all effects with an absolute value larger than minAbs.
 This functionality may be replicated using the kable() function if more precision is desired.
+
+Standard errors are computed by the delta method using the mxSE function. Options
+for SE computation are FALSE (do not compute), "observed" (compute using existing data),
+"hypothetical" (compute assuming perfect model fit). Any other value (default) selects observed if
+the model has been run and has not been modified since running, and hypothetical otherwise.
+Observed computes the SE as a traditional standard error on the fitted model; this is best if
+the goal is to examine an existing model fit.
+Hypothetical SEs assume the model is correct. The function generates a covariance and means
+matrix from the model expectation and fits a new model using those values as data.  It then
+computes SEs using the delta method from these observed data.  If data exists in the model,
+the number of data rows specified there is used.  If not, nHypo must be specified.
 }
 \examples{
+library(lavaan)
 XYZmodel <- lavaan("Y ~ .2*X +.6*Z
                     Z ~ .8*X")
 # Print all paths

@@ -88,23 +88,23 @@ kable(MIC(tomarken1C), caption="Tomarken Model 1C")
 ```
 
 And the comparison table:
-```{r}
-kable(MICTable(tomarken1A, tomarken1B, tomarken1C), caption="Tomarken Model MIC Table")
+```{r, results="asis"}
+MICTable(tomarken1A, tomarken1B, tomarken1C)
 ```
 
 This table can be complicated and difficult to read, so it may be helpful to split it into separate chunks based on the types of difference in each.
 
-```{r}
+```{r, results="asis"}
 theTables <- MICTable(tomarken1A, tomarken1B, tomarken1C, splitByType = TRUE)
 ```
 
 The result is a list of tables.  The most important in this case is the `exist` table, which carries all paths that differ by the existence of causal effect between at least two models.
-```{r}
+```{r, results="asis"}
 kable(theTables$exist, caption="Tomarken Model: MIC Existence Table")
 ```
 
 We can cull out the ones we don't want via the `%in%` operator:
-```{r}
+```{r, results="asis"}
 existTable <- theTables$exist
 kable(existTable[existTable$from %in% c("X", "Y", "Z"),], caption="Tomarken Model: MIC Existence Table (Reduced)", row.names=FALSE)
 ```
@@ -114,28 +114,28 @@ In this case, this filters out the rows that are from the additional Residual te
 Of particular note, recognize that manipulations to Y (or Ry, if you prefer) will result in distinctive patterns for each of the different models. Manipulating X results in an existence difference between 1B and the others, since X is an outcome only in 1B.  There is also a scale difference between 1A and 1C in the predictions about Z, although it is not tremendous.
 
 The next table is `sign`, which shows cases where a series of one-tailed tests might distinguish the models (here, empty).
-```{r}
+```{r, results="asis"}
 kable(theTables$sign, caption="Tomarken Model: MIC Sign Table")
 ```
 
 Then `scale`, which carries those elements that differ only by scale across all three models (again, here empty).
-```{r}
+```{r, results="asis"}
 kable(theTables$scale, caption="Tomarken Model: MIC Scale Table")
 ```
 
 The helper table `any` includes all elements of the previous three tables, ordered.  Here, it is identical to the `exist` table.
-```{r}
+```{r, results="asis"}
 kable(theTables$any, caption="Tomarken Model: MIC Any Differences Table")
 ```
 
 
 Finally `other` contains those paths that are identical in every case.
-```{r}
+```{r, results="asis"}
 kable(theTables$other, caption="Tomarken Model: MIC Other Paths Table")
 ```
 
 And finally, `all` contains causal predictions for all pairs of all variables that exist in all three models--this is the default MIC Table.
-```{r}
+```{r, results="asis"}
 kable(theTables$all, caption="Tomarken Model: MIC All Paths Table")
 ```
 

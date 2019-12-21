@@ -5,7 +5,7 @@
 \title{MIC - Compute a matrix of implied causality}
 \usage{
 MIC(model, latents = TRUE, standardized = FALSE, exogenous = TRUE,
-  se = NA, ...)
+  se = NA, N = NA, ...)
 }
 \arguments{
 \item{model}{An SEM model (see details for compatibility)}
@@ -16,7 +16,9 @@ MIC(model, latents = TRUE, standardized = FALSE, exogenous = TRUE,
 
 \item{exogenous}{Compute causal influences of exogenous variables? (default TRUE)}
 
-\item{se}{Compute SEs? (default TRUE, but only available for some models)}
+\item{se}{Compute SEs? (default NA; see details)}
+
+\item{N}{Number of observations for hypothetical standard errors}
 
 \item{...}{Other parameters passed to mxEval (e.g. defvar.row=)}
 }
@@ -34,7 +36,16 @@ of all single-headed arrows taken as part of that path, and the total causal
 influence is the sum of all paths that connect one variable to another by
 following only single-headed arrows, and only in the direction of the arrow.
 
-Standard errors are computed by the difference method using the mxSE function.
+Standard errors are computed by the delta method using the mxSE function. Options
+for SE computation are FALSE (do not compute), "observed" (compute using existing data),
+"hypothetical" (compute assuming perfect model fit). Any other value (default) selects observed if
+the model has been run and has not been modified since running, and hypothetical otherwise.
+Observed computes the SE as a traditional standard error on the fitted model; this is best if
+the goal is to examine an existing model fit.
+Hypothetical SEs assume the model is correct. The function generates a covariance and means
+matrix from the model expectation and fits a new model using those values as data.  It then
+computes SEs using the delta method from these observed data.  If data exists in the model,
+the number of data rows specified there is used.  If not, N must be specified.
 
 Currently accepts MxRAMModel objects, and converts basic lavaan and blavaan objects.
 Standard Errors are not currently available for converted or standardized models.

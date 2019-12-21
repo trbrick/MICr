@@ -1,8 +1,8 @@
 ---
-title: "Mediation-lavaan"
+title: "Matrices of Implied Causation in a Simple Mediation Model (lavaan)"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Mediation-lavaan}
+  %\VignetteIndexEntry{SimpleMediation-lavaan}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 
@@ -37,12 +37,12 @@ Note that Z->Y and X->Z remain identical, since there is only one path present t
 
 For ease of reporting, this can also be displayed as a MIC table.
 
-```{r}
+```{r, results="asis"}
 MICTable(XYZmodel, caption="Simple Mediation MIC Table")
 ```
 
 The table format has the easy ability to select using traditional data frame selection operators, but the `MICTable` function also has helpers.  For example, if we only care about the causal influences on Z or on Y:
-```{r}
+```{r, results="asis"}
 MICTable(XYZmodel, caption="Simple Mediation MIC Table: Effects on Y", to="Y")
 MICTable(XYZmodel, caption="Simple Mediation MIC Table: Effects on Z", to="Z")
 ```

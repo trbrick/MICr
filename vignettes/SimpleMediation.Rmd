@@ -2,7 +2,7 @@
 title: "Matrices of Implied Causation in a Simple Mediation Model"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{CLPMs}
+  %\VignetteIndexEntry{SimpleMediation}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

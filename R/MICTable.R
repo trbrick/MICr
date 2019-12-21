@@ -75,7 +75,9 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
 ##' @param print A list of the tables to be printed.  Set to FALSE to stop pretty-printing. By default, prints effects that differ by existence, sign, or scale. See details.
 ##' @param from A list of sources: paths not from a listed source are not printed.  Default NA (print all).
 ##' @param to A list of the outcomes; paths not ending at a listed outcome are not printed. Default NA (print all).
-##' @param se Whether or not to return standard errors (default TRUE).  Model must be a run MxModel, but consult umxLav2RAM to create and run an MxModel using lavaan syntax
+##' @param se Whether or not to return standard errors, and which to return.  Model must be a run MxModel, but consult umxLav2RAM to create and run an MxModel using lavaan syntax.
+##' See details.
+##' @param N The expected N size for hypothetical standard errors
 ##'
 ##' @return If splitByType is FALSE, a single data frame containing all implied causal effects, as compared across all models.
 ##'
@@ -102,7 +104,19 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
 ##'    If only one model is provided, "all" will print the entire model table; any other legal value will print all effects with an absolute value larger than minAbs.
 ##' This functionality may be replicated using the kable() function if more precision is desired.
 ##'
+##' Standard errors are computed by the delta method using the mxSE function. Options
+##' for SE computation are FALSE (do not compute), "observed" (compute using existing data),
+##' "hypothetical" (compute assuming perfect model fit). Any other value (default) selects observed if
+##' the model has been run and has not been modified since running, and hypothetical otherwise.
+##' Observed computes the SE as a traditional standard error on the fitted model; this is best if
+##' the goal is to examine an existing model fit.
+##' Hypothetical SEs assume the model is correct. The function generates a covariance and means
+##' matrix from the model expectation and fits a new model using those values as data.  It then
+##' computes SEs using the delta method from these observed data.  If data exists in the model,
+##' the number of data rows specified there is used.  If not, nHypo must be specified.
+##'
 ##' @examples
+##' library(lavaan)
 ##' XYZmodel <- lavaan("Y ~ .2*X +.6*Z
 ##'                     Z ~ .8*X")
 ##' # Print all paths
@@ -124,7 +138,7 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
  MICTable <- function(..., minAbs=.01, minDiff=NA, splitByType=TRUE,
                            standardize=FALSE, caption=NULL,
                            print=c("exist", "sign", "scale"),
-                           from=NA, to=NA, se=NA) {
+                           from=NA, to=NA, se=NA, N=NA) {
 
   # Handle input
   if(is.na(minDiff)) {minDiff <- minAbs}
@@ -158,16 +172,16 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
   for(mNo in seq_along(models)) {
     aModel <- models[[mNo]]
     aName <- names(models)[mNo]
-    if(is.null(attr(aModel, "MIC"))) {aModel <- MIC(aModel, standardized = standardize, se=se)}
+    if(is.null(attr(aModel, "MIC"))) {aModel <- MIC(aModel, standardized = standardize, se=se, N=N)}
     flatModel <- flattenMIC(aModel, includeModel=TRUE, model=aName, cullTiny=FALSE)
     flatSE <- NULL
-    if((is.na(se) || se) && !is.null(attr(aModel, "SE")))
+    if((is.na(as.logical(se)) || se) && !is.null(attr(aModel, "SE")))
       {flatSE <- flattenMIC(attr(aModel, "SE"), includeModel=TRUE, model=paste0(aName, "_SE"), cullTiny=FALSE)}
     tMICs <- rbind(tMICs, flatModel)
     tSEs <- rbind(tSEs, flatSE)
   }
 
-  se <- (is.na(se) || se) && (!is.null(tSEs) && nrow(tSEs) > 0)  # No SEs if we have no SEs.
+  se <- (is.na(as.logical(se)) || se) && (!is.null(tSEs) && nrow(tSEs) > 0)  # No SEs if we have no SEs.
   # Widen--one column per model, one row per path
   wideMIC <- pivot_wider(tMICs, names_from="model", values_from="value")
   if(se) {
@@ -185,8 +199,8 @@ flattenMIC <- function(mic, model=NULL, cullTiny=TRUE, tinyCutoff=1e-6,
 
 
   # Handle default from and to now that we know what our options are
-  if(OpenMx:::single.na(from)) from <- unique(wideMIC$from)
-  if(OpenMx:::single.na(to)) to <- unique(wideMIC$to)
+  if(single.na(from)) from <- unique(wideMIC$from)
+  if(single.na(to)) to <- unique(wideMIC$to)
 
   if(length(setdiff(c(from, to), unique(c(wideMIC$from, wideMIC$to)))) > 0) {
     warning(paste("Implied cause or effect of elements",

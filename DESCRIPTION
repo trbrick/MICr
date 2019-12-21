@@ -25,6 +25,7 @@ Encoding: UTF-8
 LazyData: true
 Imports: OpenMx (>= 2.11.5), rlang, purrr, dplyr, tidyr, methods, stats, lavaan, umx (>= 3.0.0), ggplot2, knitr
 Suggests: 
+    semPlot,
     rmarkdown,
     DiagrammeR,
     testthat (>= 2.1.0)
