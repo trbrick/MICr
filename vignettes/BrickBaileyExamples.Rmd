@@ -152,10 +152,10 @@ MICTable(tomarken1A, tomarken1B, tomarken1C, from=c("X", "Y", "Z"), to=c("X", "Y
 ```
 
 
-# Example 2: CLPMs from Duncan, et al.
-Example 2 comes from Duncan(2007) courtesy of  Bailey et al. (2018?).  Three fairly intricate models, and we'll do one better by dropping the person-level intercepts.
+# Example 2: CLPM vs RI-CLPM
+Example 2 uses three fairly intricate models, and we'll compare them.
 
-First, need the data and the correlation matrix--it's in the paper, luckily.
+First, need the data and the correlation matrix.
 ```{r RICLPMBase}
 means <- c(68.08, 93.09, 107.40, 116.80, 49.91, 73.87, 90.65, 102.87)
 times <- c("K", 1:3)
@@ -179,7 +179,7 @@ dimnames(covMat) <- list(manifests, manifests)
 dimnames(corMat) <- list(manifests, manifests)
 ```
 
-## Duncan CLPM1
+## CLPM1
 Our first model has fixed 0 loadings from the latent intercepts.
 ```{r CLPM1, warning=FALSE, message=FALSE}
 ModelCLPM1 <- mxModel("CLPM1", type="RAM", manifestVars = manifests,
@@ -224,7 +224,7 @@ CLPM1 <- mxTryHard(ModelCLPM1)
 if(drawPlots) semPaths(CLPM1)
 ```
 
-## Duncan CLPM2
+## CLPM2
 CLPM2 is modified from CLPM1, and adds loadings and a free covariance for the latent intercepts so that they have influence on the model.  We mark the random intercepts as having identical loadings on the manifest measurements across time.
 ```{r RI-CLPM2, message=FALSE, warning=FALSE}
 ModelCLPM2 <- mxModel(CLPM1,
